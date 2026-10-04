@@ -1,0 +1,80 @@
+# Baut die Wetter-App und veröffentlicht sie auf GitHub Pages.
+# Läuft bei jeder Änderung im Repository und zusätzlich zweimal täglich:
+#   ca. 07:05 Uhr – Waldbrand- und Graslandindex (DWD aktualisiert um 7 Uhr)
+#   ca. 11:15 Uhr – Pollenflug und Biowetter (DWD aktualisiert um 11 Uhr)
+# Einmalig nötig: Settings → Pages → Source: "GitHub Actions".
+name: Wetter-App veröffentlichen
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # GitHub rechnet in UTC und kennt keine Sommerzeit. Darum je zwei Termine;
+    # der Schritt "Uhrzeit prüfen" lässt nur die Läufe zu, die nach deutscher Zeit passen.
+    - cron: "5 5 * * *"     # 07:05 Uhr Sommerzeit
+    - cron: "5 6 * * *"     # 07:05 Uhr Winterzeit
+    - cron: "15 9 * * *"    # 11:15 Uhr Sommerzeit
+    - cron: "15 10 * * *"   # 11:15 Uhr Winterzeit
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  veroeffentlichen:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Uhrzeit prüfen
+        id: zeit
+        env:
+          PLAN: ${{ github.event.schedule }}
+        run: |
+          lauf=true
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            # Abstand zu UTC: 1 Std im Winter, 2 Std im Sommer
+            off=$(( ( $(TZ=Europe/Berlin date +%-H) - $(date -u +%-H) + 24 ) % 24 ))
+            h=$(echo "$PLAN" | awk '{print $2}')
+            ziel=7; [ "$h" -ge 9 ] && ziel=11
+            [ $(( h + off )) -eq $ziel ] || lauf=false
+            echo "Plan: $PLAN, Abstand zu UTC: $off Std, Lauf: $lauf"
+          fi
+          echo "lauf=$lauf" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.zeit.outputs.lauf == 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.zeit.outputs.lauf == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: DWD-Zusatzdaten holen
+        if: steps.zeit.outputs.lauf == 'true'
+        run: python tools/hole_daten.py
+        continue-on-error: true
+
+      - name: Seite zusammenstellen
+        if: steps.zeit.outputs.lauf == 'true'
+        run: |
+          mkdir -p _site daten
+          cp index.html sw.js manifest.webmanifest icon-*.png _site/
+          cp -r icons daten _site/
+          [ -f CNAME ] && cp CNAME _site/ || true
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.zeit.outputs.lauf == 'true'
+        with:
+          path: _site
+
+      - id: deploy
+        if: steps.zeit.outputs.lauf == 'true'
+        uses: actions/deploy-pages@v4
