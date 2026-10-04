@@ -193,6 +193,49 @@ a{color:var(--rain)}
 .mg-info .tip{font-size:12px;opacity:.8}
 .daydet .mg-scroll{margin:0 -4px}
 img.wi{display:block;flex:none;pointer-events:none}
+.hero-btns{display:flex;gap:8px}
+.blk h2 .mini{margin-left:auto;font:600 13px var(--font);border:0;border-radius:10px;padding:6px 11px;background:var(--surface);color:var(--ink)}
+.palarm{margin-top:8px;font:600 13.5px var(--font);padding:7px 10px;border-radius:10px;background:var(--soft);color:var(--muted)}
+.palarm.on{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+.wtemp{display:flex;align-items:baseline;gap:8px;margin-top:8px;flex-wrap:wrap}
+.wtemp b{font:500 22px var(--num);color:var(--rain)}
+.wtemp span{font-size:13px;color:var(--muted)}
+.frow{display:flex;align-items:center;gap:10px;margin-top:10px}
+.fl{font:700 14px var(--font);width:40px}
+.fcells{display:flex;gap:6px;flex:1;min-width:0}
+.fc{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.fc span{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.fs{display:grid;place-items:center;width:100%;max-width:46px;height:30px;border-radius:8px;font:700 15px var(--num);color:#1E2329}
+.fs.f1{background:#F6EDB0}.fs.f2{background:#F2CF4A}.fs.f3{background:#F0962E}.fs.f4{background:#D7261E;color:#fff}.fs.f5{background:#7A1033;color:#fff}
+.ptab{margin-top:8px;display:grid;gap:6px}
+.ph,.pr{display:grid;grid-template-columns:72px 1fr 1fr 1fr;gap:6px;align-items:center}
+.ph span{font-size:11.5px;color:var(--muted);text-align:center}
+.pr>span{font:600 14px var(--font)}
+.pp{font:600 11px/1.15 var(--font);text-align:center;padding:6px 3px;border-radius:8px;background:var(--soft);color:var(--muted)}
+.pp.p1{background:#E4F2D2;color:#3C5A1E}.pp.p2{background:#C9E79E;color:#35511A}.pp.p3{background:#F3E07A;color:#5A4A08}
+.pp.p4{background:#F2B04A;color:#4A2E00}.pp.p5{background:#E8743A;color:#fff}.pp.p6{background:#C8102E;color:#fff}
+.trow{display:grid;grid-template-columns:62px auto 1fr;gap:8px;align-items:center;margin-top:8px}
+.trow>span:first-child{font:600 14px var(--font)}
+.trow .muted{font-size:13px;text-align:right}
+.tk{font:600 12.5px var(--font);padding:5px 9px;border-radius:8px;background:var(--soft)}
+.tk.t1{background:#F6E7A6;color:#5A4A08}.tk.t2{background:#F2B04A;color:#4A2E00}.tk.t3{background:#E8743A;color:#fff}.tk.t4{background:#B3122B;color:#fff}
+.tk.t-1{background:#D6E6F7;color:#1E4A7A}.tk.t-2{background:#9CC3EC;color:#123B66}.tk.t-3{background:#4F8FD3;color:#fff}.tk.t-4{background:#2A4F9A;color:#fff}
+.tk.t0{background:#DDF0DC;color:#24572B}
+.bper{margin-top:10px}
+.bper>b{display:block;font:600 14px var(--font);margin-bottom:4px}
+.brow{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:3px 0;font-size:13.5px}
+.bv{font-style:normal;font:600 12px var(--font);padding:3px 8px;border-radius:8px;white-space:nowrap}
+.bv.b0{background:#DDF0DC;color:#24572B}.bv.b1{background:#F6E7A6;color:#5A4A08}.bv.b2{background:#F2B04A;color:#4A2E00}.bv.b3{background:#E8743A;color:#fff}
+.brat{margin-top:8px;font-style:italic}
+.chipsel{padding:4px 14px 12px}
+.chipsel>span{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px}
+.chipsel>div{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:500 13.5px var(--font);border:1px solid var(--line);background:none;border-radius:16px;padding:6px 12px;color:var(--muted)}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.thr.two{grid-template-columns:1fr 2fr;align-items:end}
+.hintc{font-size:12.5px;color:var(--muted);padding-bottom:4px}
+#tabs button{white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:11px;letter-spacing:-.15px}
+
 .thr.one{grid-template-columns:1fr}
 .osm-hell{filter:grayscale(.9) brightness(1.04) contrast(.9)}
 .osm-dunkel{filter:invert(1) hue-rotate(180deg) grayscale(.85) brightness(.8) contrast(.92)}
@@ -314,13 +357,18 @@ input[type=text],input[type=search],input[type=number],input[type=date],select{f
       <canvas id="skycanvas" aria-hidden="true"></canvas>
       <div class="hero">
         <div class="hero-top">
-          <button class="place-btn" data-a="tab:orte" aria-label="Orte verwalten">
+          <button class="place-btn" data-a="tab:orte" aria-label="Orte und Einstellungen">
             <b id="h-place">–</b><span id="h-label"></span>
             <div class="dots" id="h-dots"></div>
           </button>
-          <button class="glass" id="refresh" data-a="refresh" aria-label="Aktualisieren">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>
-          </button>
+          <div class="hero-btns">
+            <button class="glass" data-a="teilen" aria-label="Lage teilen">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.4M8.3 13.2l7.4 4.4"/></svg>
+            </button>
+            <button class="glass" id="refresh" data-a="refresh" aria-label="Aktualisieren">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>
+            </button>
+          </div>
         </div>
         <div class="hero-main">
           <div class="temp" id="h-temp">–</div>
@@ -344,7 +392,7 @@ input[type=text],input[type=search],input[type=number],input[type=date],select{f
   <button data-a="tab:radar"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l5.5-5.5"/></svg>Radar</button>
   <button data-a="tab:historisch"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Historisch</button>
   <button data-a="tab:warnungen"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5M12 17.2v.1"/></svg>Warnungen<span class="badge" id="warnbadge" hidden></span></button>
-  <button data-a="tab:orte"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Orte</button>
+  <button data-a="tab:orte"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Einstellungen</button>
 </div></nav>
 <div id="sheet" hidden></div>
 
@@ -355,8 +403,8 @@ input[type=text],input[type=search],input[type=number],input[type=date],select{f
    ===================================================================== */
 const CFG = {
   start: { name: "Porta Westfalica", label: "Feuer- und Rettungswache", lat: 52.2260, lon: 8.9180 },
-  pegel: { station: "PORTA", name: "Porta", gewaesser: "Weser" },
-  schwellen: { boen: 60, frost: 0, sicht: 1000 },   // km/h, °C, m
+  pegel: { station: "PORTA", name: "Porta", gewaesser: "Weser", wtRadiusKm: 80 },   // Wassertemperatur: eigene Messung oder nächste Station im Umkreis
+  schwellen: { boen: 60, frost: 0, sicht: 1000, pegel: null },   // km/h, °C, m, cm (Pegel: null = aus)
   refreshMin: 10,
   radarKm: 100,
   cartoKey: "",   // optional; besser in der App unter Orte → Einstellungen eintragen (bleibt dann privat)
@@ -556,7 +604,8 @@ const S = {
   places: store.get("places", null) || [{ id: "p" + Date.now().toString(36), ...CFG.start, station: null }],
   gps: store.get("gps", { on: false, lat: null, lon: null, label: "" }),
   curId: store.get("cur", null),
-  settings: Object.assign({ extras: true, notify: false, schwellen: { ...CFG.schwellen } }, store.get("settings", {})),
+  settings: Object.assign({ extras: true, notify: false, gesundheit: true, pollenRegion: 42, pollenArten: ["Hasel", "Erle", "Esche", "Birke", "Graeser", "Roggen", "Beifuss", "Ambrosia"], bioZone: "C", schwellen: { ...CFG.schwellen } }, store.get("settings", {})),
+  lage: store.get("lage", null),
   raw: {}, daten: {}, radar: null, mgSel: {}, pegel: store.get("pegel", null),
   tab: "wetter", selHour: 0, openDay: null, busy: false, err: null,
   hist: { mode: "zeitraum", preset: "30", von: null, bis: null, monat: new Date().getMonth(), res: null, busy: false, err: null },
@@ -742,6 +791,7 @@ async function ladePegel() {
   const prog = wv.status === "fulfilled" ? wv.value.map(x => [new Date(x.timestamp).getTime(), x.value]).filter(x => x[0] > now) : [];
   const progAt = h => { const z = now + h * 3600e3; const x = prog.find(e => e[0] >= z); return x ? x[1] : null; };
   S.pegel = { ts: Date.now(), name: info.value?.longname || st, water: info.value?.water?.longname || CFG.pegel.gewaesser, v: last?.v, t: last?.t, trend: cm?.trend, state: cm?.stateMnwMhw, d6: last ? vorher(6) : null, d24: last ? vorher(24) : null, series: m.filter((_, i) => i % 3 === 0), p6: progAt(6), p24: progAt(24) };
+  S.pegel.wt = await ladeWassertemp(info.status === "fulfilled" ? info.value : null).catch(() => null);
   store.set("pegel", S.pegel);
 }
 
@@ -760,6 +810,7 @@ async function aktualisiere() {
   const jobs = [];
   jobs.push(ladeRadar(p).then(R => { S.radar = R; S.radarErr = null; }).catch(e => { S.radarErr = "Radar nicht erreichbar."; console.warn(e); }));
   if (S.settings.extras) jobs.push(ladePegel().then(() => { S.pegelErr = false; }).catch(e => { S.pegelErr = true; console.warn(e); }));
+  if (S.settings.extras || S.settings.gesundheit) jobs.push(ladeLage().catch(e => console.warn(e)));
   await Promise.all(jobs);
   S.busy = false; $("#refresh").classList.remove("busy");
   render();
@@ -850,6 +901,7 @@ function renderWetter() {
   h += jetztHtml(d, p);
   // Einsatz-Extras
   if (S.settings.extras) h += extrasHtml();
+  if (S.settings.gesundheit) h += gesundheitHtml(d);
   h += `<p class="foot">Wetter, Radar und Warnungen: Deutscher Wetterdienst über die offene Bright-Sky-API. UV-Index: Open-Meteo. Pegel: WSV PEGELONLINE. Stand ${hm(new Date(d.ts))} Uhr. Angaben ohne Gewähr; andere Apps wie FeWIS nutzen teils Modellwerte (MOSMIX) und können abweichen.</p>`;
   body.innerHTML = h;
 }
@@ -867,6 +919,7 @@ function hinweise(d) {
   const s = S.settings.schwellen, n = Date.now(), arr = d.hours.filter(h => h.t >= n - 3600e3 && h.t <= n + 24 * 3600e3), out = [];
   const g = maxBy(arr, "gust"); if (g && g.gust >= s.boen) out.push({ k: "Böen", txt: `bis ${rnd(g.gust)} km/h`, t: g.t });
   const f = minBy(arr, "temp"); if (f && f.temp <= s.frost) out.push({ k: "Frost", txt: `bis ${nf(f.temp, 1)} °C`, t: f.t });
+  const pa = S.settings.extras ? pegelAlarm() : null; if (pa?.ueber) out.push({ k: "Pegel", txt: `${rnd(S.pegel.v)} cm, Alarm ab ${pa.schwelle} cm`, t: new Date(S.pegel.t) });
   const v = minBy(arr, "vis"); if (v && v.vis <= s.sicht) out.push({ k: "Sicht", txt: `nur ${v.vis < 1000 ? rnd(v.vis) + " m" : nf(v.vis / 1000, 1) + " km"}`, t: v.t });
   return out;
 }
@@ -1062,32 +1115,289 @@ function jetztHtml(d, p) {
   </div></section>`;
 }
 function uvText(u) { if (u == null) return ""; return u < 3 ? "niedrig" : u < 6 ? "mäßig" : u < 8 ? "hoch" : u < 11 ? "sehr hoch" : "extrem"; }
+/* =====================================================================
+   Zusatzdaten: Feuerindizes, Pollen, Biowetter (über GitHub-Aktion)
+   ===================================================================== */
+const DWD_POLLEN = "https://opendata.dwd.de/climate_environment/health/alerts/s31fg.json";
+const DWD_BIO = "https://opendata.dwd.de/climate_environment/health/alerts/biowetter.json";
+const POLLEN_REGIONEN = [[11, "Inseln und Marschen (SH/HH)"], [12, "Geest (SH/HH)"], [20, "Mecklenburg-Vorpommern"], [31, "Westl. Niedersachsen/Bremen"], [32, "Östl. Niedersachsen"], [41, "Rhein.-Westfäl. Tiefland"], [42, "Ostwestfalen"], [43, "Mittelgebirge NRW"], [50, "Brandenburg und Berlin"], [61, "Tiefland Sachsen-Anhalt"], [62, "Harz"], [71, "Tiefland Thüringen"], [72, "Mittelgebirge Thüringen"], [81, "Tiefland Sachsen"], [82, "Mittelgebirge Sachsen"], [91, "Nordhessen und hess. Mittelgebirge"], [92, "Rhein-Main"], [101, "Rhein, Pfalz, Nahe und Mosel"], [102, "Mittelgebirge Rheinland-Pfalz"], [103, "Saarland"], [111, "Oberrhein und unteres Neckartal"], [112, "Hohenlohe, mittl. Neckar, Oberschwaben"], [113, "Mittelgebirge Baden-Württemberg"], [121, "Allgäu, Oberbayern, Bay. Wald"], [122, "Donauniederungen"], [123, "Bayern nördl. der Donau"], [124, "Mainfranken"]];
+const POLLEN_ARTEN = [["Hasel", "Hasel"], ["Erle", "Erle"], ["Esche", "Esche"], ["Birke", "Birke"], ["Graeser", "Gräser"], ["Roggen", "Roggen"], ["Beifuss", "Beifuß"], ["Ambrosia", "Ambrosia"]];
+const POLLEN_STUFEN = { "0": [0, "keine"], "0-1": [1, "keine bis gering"], "1": [2, "gering"], "1-2": [3, "gering bis mittel"], "2": [4, "mittel"], "2-3": [5, "mittel bis hoch"], "3": [6, "hoch"] };
+const BIO_ZONEN = [["A", "Schleswig-Holstein, Hamburg, nördl. Niedersachsen, Bremen"], ["B", "Mecklenburg-Vorpommern"], ["C", "Südwestl. Niedersachsen, Nordrhein-Westfalen"], ["D", "Östliches und südliches Niedersachsen"], ["E", "Berlin, Brandenburg, nördl. Sachsen-Anhalt"], ["F", "Hessen, Rheinland-Pfalz, Saarland"], ["G", "Südl. Sachsen-Anhalt, Thüringen, Sachsen"], ["H", "Baden"], ["I", "Württemberg, Franken ohne östl. Oberfranken"], ["J", "Niederbayern, Oberpfalz, östl. Oberfranken"], ["K", "Schwaben, Oberbayern"]];
+const FEUER_STUFEN = ["", "sehr gering", "gering", "mittel", "hoch", "sehr hoch"];
+
+function kompaktPollen(j) {
+  return {
+    stand: j.last_update, naechste: j.next_update,
+    regionen: (j.content || []).map(c => ({
+      id: c.partregion_id > 0 ? c.partregion_id : c.region_id,
+      name: c.partregion_name || c.region_name,
+      pollen: Object.fromEntries(Object.entries(c.Pollen || {}).map(([k, v]) => [k, [v.today, v.tomorrow, v.dayafter_to]]))
+    }))
+  };
+}
+function kompaktBio(j) {
+  const PER = ["today_morning", "today_afternoon", "tomorrow_morning", "tomorrow_afternoon", "dayafter_to_morning", "dayafter_to_afternoon"];
+  return {
+    stand: j.last_update,
+    zonen: (j.zone || []).map(z => ({
+      id: z.id, name: z.name,
+      perioden: PER.filter(k => z[k]).map(k => ({ k, date: z[k].date, name: z[k].name, effekte: (z[k].effect || []).map(e => [e.name, e.value]), rat: (z[k].recomms || []).map(r => [r.name, r.value]) }))
+    }))
+  };
+}
+async function ladeLage(erzwingen) {
+  if (!erzwingen && S.lage?.ts && Date.now() - S.lage.ts < 20 * 60e3) return;
+  let j = null;
+  try { j = await getJSON(`daten/lage.json?t=${Math.floor(Date.now() / 600e3)}`, { timeout: 10000 }); } catch { /* Aktion noch nicht eingerichtet */ }
+  const L = { ts: Date.now(), github: !!j, stand: j?.stand || null, feuer: j?.feuer || null, pollen: j?.pollen || null, bio: j?.bio || null };
+  // Rückfall: direkt beim DWD (funktioniert nur, wenn der DWD Browser-Abrufe zulässt)
+  if (S.settings.gesundheit) {
+    if (!L.pollen) L.pollen = await getJSON(DWD_POLLEN, { timeout: 10000 }).then(kompaktPollen).catch(() => null);
+    if (!L.bio) L.bio = await getJSON(DWD_BIO, { timeout: 10000 }).then(kompaktBio).catch(() => null);
+  }
+  if (!L.pollen && S.lage?.pollen) L.pollen = S.lage.pollen;
+  if (!L.bio && S.lage?.bio) L.bio = S.lage.bio;
+  if (!L.feuer && S.lage?.feuer) L.feuer = S.lage.feuer;
+  S.lage = L; store.set("lage", L);
+}
+
+/* ---------- Wassertemperatur ---------- */
+function kmZwischen(a1, o1, a2, o2) {
+  const r = Math.PI / 180, x = Math.sin((a2 - a1) * r / 2) ** 2 + Math.cos(a1 * r) * Math.cos(a2 * r) * Math.sin((o2 - o1) * r / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(x));
+}
+async function ladeWassertemp(info) {
+  const eigen = (info?.timeseries || []).find(t => t.shortname === "WT");
+  if (eigen?.currentMeasurement) return { v: eigen.currentMeasurement.value, t: new Date(eigen.currentMeasurement.timestamp).getTime(), name: info.longname, km: 0 };
+  const lat = info?.latitude ?? CFG.start.lat, lon = info?.longitude ?? CFG.start.lon, R = CFG.pegel.wtRadiusKm;
+  const q = "timeseries=WT&includeTimeseries=true&includeCurrentMeasurement=true";
+  let list = await getJSON(`${PO}/stations.json?${q}&latitude=${lat}&longitude=${lon}&radius=${R}`).catch(() => null);
+  if (!list?.length) list = await getJSON(`${PO}/stations.json?${q}&waters=${encodeURIComponent(CFG.pegel.gewaesser.toUpperCase())}`).catch(() => []);
+  const now = Date.now(), gew = CFG.pegel.gewaesser.toUpperCase();
+  const k = (list || []).map(s => {
+    const cm = (s.timeseries || []).find(t => t.shortname === "WT")?.currentMeasurement;
+    if (!cm || s.latitude == null) return null;
+    const t = new Date(cm.timestamp).getTime(); if (now - t > 3 * 86400e3) return null;
+    return { v: cm.value, t, name: s.longname, water: s.water?.longname || "", km: kmZwischen(lat, lon, s.latitude, s.longitude) };
+  }).filter(x => x && x.km <= R).sort((a, b) => (a.water.toUpperCase() === gew ? 0 : 500) + a.km - ((b.water.toUpperCase() === gew ? 0 : 500) + b.km));
+  return k[0] || null;
+}
+const schoen = s => s ? s.toLowerCase().replace(/(^|[\s-])(\S)/g, (m, a, b) => a + b.toUpperCase()) : "";
+
+/* ---------- Für den Einsatz ---------- */
+function pegelAlarm() {
+  const s = S.settings.schwellen.pegel, pg = S.pegel;
+  if (!s || !pg || pg.v == null) return null;
+  return { schwelle: s, diff: pg.v - s, ueber: pg.v >= s };
+}
+function feuerHtml() {
+  const F = S.lage?.feuer, links = `<div class="linkrow"><a href="${CFG.links.wbi}" target="_blank" rel="noopener">Waldbrandindex</a><a href="${CFG.links.glfi}" target="_blank" rel="noopener">Graslandfeuerindex</a></div>`;
+  if (!F) return `<div class="tile wide"><div class="k">Waldbrand und Grasland</div><div class="s">${S.lage?.github === false ? "Die automatische Abfrage über GitHub ist noch nicht eingerichtet (siehe README). Bis dahin:" : "Werte werden geladen …"}</div>${links}</div>`;
+  const tage = n => (F.tage && F.tage.length >= n ? F.tage : ["Heute", "Morgen", "+2", "+3", "+4"]);
+  const reihe = (lab, arr) => !arr?.length ? "" : `<div class="frow"><span class="fl">${lab}</span><div class="fcells">${arr.map((v, i) => `<div class="fc"><span>${esc(i === 0 ? "Heute" : i === 1 ? "Morgen" : tage(arr.length)[i])}</span><b class="fs f${v}" title="${FEUER_STUFEN[v] || ""}">${v}</b></div>`).join("")}</div></div>`;
+  if (!F.wbi?.length && !F.glfi?.length) return `<div class="tile wide"><div class="k">Waldbrand und Grasland, ${esc(F.station || "")}</div><div class="s">Zurzeit veröffentlicht der DWD keine Werte (außerhalb der Saison üblich).</div>${links}</div>`;
+  const heute = Math.max(F.wbi?.[0] || 0, F.glfi?.[0] || 0);
+  return `<div class="tile wide"><div class="k">Waldbrand und Grasland, Station ${esc(F.station || "")}</div>
+    <div class="s">Heute höchstens Stufe ${heute} von 5 (${FEUER_STUFEN[heute] || "–"})</div>
+    ${reihe("WBI", F.wbi)}${reihe("GLFI", F.glfi)}
+    <div class="s">DWD${F.stand ? ", abgerufen " + esc(F.stand) : ""}</div></div>`;
+}
 function extrasHtml() {
-  const pg = S.pegel;
+  const pg = S.pegel, al = pegelAlarm();
   let pegel = `<div class="tile wide"><div class="k">Weser, Pegel ${esc(CFG.pegel.name)}</div><div class="s">${S.pegelErr ? `Pegel gerade nicht erreichbar. <a href="${CFG.links.pegel}" target="_blank" rel="noopener">PEGELONLINE öffnen</a>` : "Pegel wird geladen …"}</div></div>`;
   if (pg && pg.v != null) {
     const tr = pg.trend === 1 ? "steigend" : pg.trend === -1 ? "fallend" : "gleichbleibend";
     const zs = { low: "niedrig", normal: "normal", high: "hoch" }[pg.state] || "";
     const ch = v => v == null ? "–" : `${v > 0 ? "+" : v < 0 ? "−" : "±"}${Math.abs(Math.round(v))} cm`;
-    pegel = `<div class="tile wide"><div class="k">${esc(pg.water ? pg.water.charAt(0) + pg.water.slice(1).toLowerCase() : "Weser")}, Pegel ${esc(CFG.pegel.name)}</div>
+    const alarm = al ? `<div class="palarm${al.ueber ? " on" : ""}">${al.ueber ? `Alarmschwelle ${al.schwelle} cm überschritten (+${Math.round(al.diff)} cm)` : `Noch ${Math.round(-al.diff)} cm bis zur Alarmschwelle (${al.schwelle} cm)`}</div>` : "";
+    const wt = pg.wt ? `<div class="wtemp"><b class="num">${nf(pg.wt.v, 1)} °C</b><span>Wassertemperatur${pg.wt.km > 0.5 ? `, Pegel ${esc(schoen(pg.wt.name))} (${nf(pg.wt.km, 0)} km)` : ""}, ${hm(new Date(pg.wt.t))} Uhr</span></div>` : "";
+    pegel = `<div class="tile wide"><div class="k">${esc(pg.water ? schoen(pg.water) : "Weser")}, Pegel ${esc(CFG.pegel.name)}</div>
       <div class="v num">${rnd(pg.v)}<small>cm</small></div>
       <div class="s">${tr}${zs ? ", Wasserstand " + zs : ""}. 6 Std: ${ch(pg.d6)}, 24 Std: ${ch(pg.d24)}${pg.p6 != null ? `. Vorhersage +6 Std: ${rnd(pg.p6)} cm` : ""}${pg.p24 != null ? `, +24 Std: ${rnd(pg.p24)} cm` : ""}</div>
-      <div class="spark">${sparkline(pg.series)}</div>
-      <div class="s">Stand ${hm(new Date(pg.t))} Uhr</div></div>`;
+      ${alarm}<div class="spark">${sparkline(pg.series, al?.schwelle)}</div>
+      ${wt}<div class="s">Stand ${hm(new Date(pg.t))} Uhr</div></div>`;
   }
-  return `<section class="blk"><h2>Für den Einsatz</h2><div class="tiles">${pegel}
-    <div class="tile wide"><div class="k">Waldbrand und Grasland</div><div class="s">Der DWD stellt WBI und GLFI nur als Tabellen bereit, die eine Web-App nicht direkt lesen darf. Station Bückeburg nachschlagen:</div>
-    <div class="linkrow"><a href="${CFG.links.wbi}" target="_blank" rel="noopener">Waldbrandindex</a><a href="${CFG.links.glfi}" target="_blank" rel="noopener">Graslandfeuerindex</a><a href="${CFG.links.pegel}" target="_blank" rel="noopener">PEGELONLINE</a></div></div>
-  </div></section>`;
+  return `<section class="blk"><h2>Für den Einsatz <button class="mini" data-a="teilen">Lage teilen</button></h2><div class="tiles">${pegel}${feuerHtml()}</div></section>`;
 }
-function sparkline(series) {
+function sparkline(series, schwelle) {
   if (!series || series.length < 3) return "";
-  const W = 320, H = 60, xs = series.map(s => s[0]), ys = series.map(s => s[1]);
-  const x0 = xs[0], x1 = xs[xs.length - 1], lo = Math.min(...ys), hi = Math.max(...ys), sp = Math.max(4, hi - lo);
-  const X = x => (x - x0) / (x1 - x0) * W, Y = y => H - 6 - (y - lo) / sp * (H - 14);
+  const W = 320, H = 70, xs = series.map(s => s[0]), ys = series.map(s => s[1]);
+  let lo = Math.min(...ys), hi = Math.max(...ys);
+  const zeigS = schwelle != null && schwelle <= hi + Math.max(60, (hi - lo) * 2) && schwelle >= lo - 60;
+  if (zeigS) { lo = Math.min(lo, schwelle); hi = Math.max(hi, schwelle); }
+  const sp = Math.max(4, hi - lo), x0 = xs[0], x1 = xs[xs.length - 1];
+  const X = x => (x - x0) / (x1 - x0) * W, Y = y => H - 14 - (y - lo) / sp * (H - 26);
   const d = series.map((s, i) => `${i ? "L" : "M"}${X(s[0]).toFixed(1)} ${Y(s[1]).toFixed(1)}`).join("");
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pegelverlauf 48 Stunden"><path d="${d} L${W} ${H} L0 ${H}Z" fill="var(--rain)" opacity=".12"/><path d="${d}" fill="none" stroke="var(--rain)" stroke-width="2"/><text x="0" y="${H - 1}" font-size="10" fill="var(--muted)">vor 48 Std</text><text x="${W}" y="${H - 1}" font-size="10" fill="var(--muted)" text-anchor="end">jetzt</text></svg>`;
+  const sl = zeigS ? `<line x1="0" x2="${W}" y1="${Y(schwelle).toFixed(1)}" y2="${Y(schwelle).toFixed(1)}" stroke="var(--red)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${W - 2}" y="${(Y(schwelle) - 4).toFixed(1)}" font-size="10" fill="var(--red)" text-anchor="end">Alarm ${schwelle} cm</text>` : "";
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pegelverlauf 48 Stunden"><path d="${d} L${W} ${H - 12} L0 ${H - 12}Z" fill="var(--rain)" opacity=".12"/><path d="${d}" fill="none" stroke="var(--rain)" stroke-width="2"/>${sl}<text x="0" y="${H - 1}" font-size="10" fill="var(--muted)">vor 48 Std</text><text x="${W}" y="${H - 1}" font-size="10" fill="var(--muted)" text-anchor="end">jetzt</text></svg>`;
 }
+
+/* ---------- Gesundheit ---------- */
+function thermKlasse(t) {
+  if (t == null || isNaN(t)) return null;
+  if (t > 38) return [4, "extreme Wärmebelastung"]; if (t > 32) return [3, "starke Wärmebelastung"];
+  if (t > 26) return [2, "mäßige Wärmebelastung"]; if (t > 20) return [1, "schwache Wärmebelastung"];
+  if (t >= 0) return [0, "keine Belastung"]; if (t >= -13) return [-1, "schwache Kältebelastung"];
+  if (t >= -26) return [-2, "mäßige Kältebelastung"]; if (t >= -39) return [-3, "starke Kältebelastung"];
+  return [-4, "extreme Kältebelastung"];
+}
+function tagesBelastung(t) {
+  const h = t.hours.filter(x => x.t.getHours() >= 6 && x.t.getHours() <= 22 && x.felt != null);
+  if (!h.length) return null;
+  const mx = Math.max(...h.map(x => x.felt)), mn = Math.min(...h.map(x => x.felt));
+  if (mx > 20) return { wert: mx, k: thermKlasse(mx), txt: `gefühlt bis ${deg(mx)}` };
+  if (mn < 0) return { wert: mn, k: thermKlasse(mn), txt: `gefühlt bis ${deg(mn)}` };
+  return { wert: mx, k: thermKlasse(mx), txt: `gefühlt ${deg(mn)} bis ${deg(mx)}` };
+}
+function pollenZeilen() {
+  const P = S.lage?.pollen; if (!P) return null;
+  const reg = P.regionen.find(r => r.id === S.settings.pollenRegion); if (!reg) return null;
+  const arten = POLLEN_ARTEN.filter(([k]) => S.settings.pollenArten.includes(k));
+  return { reg, zeilen: arten.map(([k, lab]) => { const v = reg.pollen[k] || []; return { k, lab, v, lv: v.map(x => POLLEN_STUFEN[x]?.[0] ?? 0) }; }).filter(r => r.lv.some(x => x > 0)) };
+}
+const BIO_KURZ = [[/allgemeine Befinden/, "Allgemeines Befinden"], [/hypotone/, "Kreislauf (niedriger Blutdruck)"], [/hypertone/, "Herz-Kreislauf (hoher Blutdruck)"], [/entzündliche rheum/, "Rheuma, entzündlich"], [/degenerative rheum/, "Rheuma, degenerativ"], [/Asthma/, "Asthma"], [/Thermische/, "Thermische Belastung"]];
+const bioName = n => (BIO_KURZ.find(([r]) => r.test(n)) || [0, n])[1];
+const bioRelevant = v => v && !/^(kein Einfluss|keine)$/i.test(v.trim());
+const bioFarbe = v => /hoch|stark/i.test(v) ? "b3" : /positiv|günstig/i.test(v) ? "b0" : /mäßig|mittel/i.test(v) ? "b2" : "b1";
+function bioPerioden() {
+  const B = S.lage?.bio; if (!B) return null;
+  const z = B.zonen.find(x => x.id === S.settings.bioZone); if (!z) return null;
+  const heute = ymd(new Date()), morgen = ymd(addDays(new Date(), 1));
+  const pick = (date, half) => z.perioden.find(p => p.date === date && (half ? p.name.startsWith(half) : true));
+  const out = [];
+  const h = new Date().getHours() < 17 ? pick(heute, "2") : null; if (h) out.push(["Heute Nachmittag", h]);
+  const m1 = pick(morgen, "1"), m2 = pick(morgen, "2");
+  if (m1) out.push(["Morgen Vormittag", m1]); if (m2 && out.length < 2) out.push(["Morgen Nachmittag", m2]);
+  if (!out.length && z.perioden[0]) out.push([z.perioden[0].name, z.perioden[0]]);
+  return { z, out, stand: B.stand };
+}
+function gesundheitHtml(d) {
+  let h = "";
+  // Pollen
+  const pz = pollenZeilen();
+  if (pz) {
+    const kopf = `<div class="ph"><span></span><span>Heute</span><span>Morgen</span><span>Übermorgen</span></div>`;
+    const rows = pz.zeilen.map(r => `<div class="pr"><span>${r.lab}</span>${[0, 1, 2].map(i => `<b class="pp p${r.lv[i] ?? 0}" title="${POLLEN_STUFEN[r.v[i]]?.[1] || ""}">${r.lv[i] ? esc(POLLEN_STUFEN[r.v[i]][1]) : "–"}</b>`).join("")}</div>`).join("");
+    h += `<div class="tile wide"><div class="k">Pollenflug, ${esc(pz.reg.name)}</div>${pz.zeilen.length ? `<div class="ptab">${kopf}${rows}</div>` : `<div class="s">${S.settings.pollenArten.length < 8 ? "Für deine gewählten Pollen" : "Zurzeit"} kein nennenswerter Pollenflug.</div>`}<div class="s">DWD-Pollenflug-Gefahrenindex, Stand ${esc(S.lage.pollen.stand || "–")}</div></div>`;
+  } else h += `<div class="tile wide"><div class="k">Pollenflug</div><div class="s">${S.lage ? "Pollendaten sind gerade nicht verfügbar. Mit der GitHub-Aktion (README) kommen sie zuverlässig." : "Wird geladen …"}</div></div>`;
+  // Thermische Belastung aus der Vorhersage
+  const tb = d.days.slice(0, 2).map((t, i) => [i ? "Morgen" : "Heute", tagesBelastung(t)]).filter(x => x[1]);
+  if (tb.length) h += `<div class="tile wide"><div class="k">Gefühlte Belastung</div>${tb.map(([lab, b]) => `<div class="trow"><span>${lab}</span><b class="tk t${b.k[0]}">${b.k[1]}</b><span class="muted">${b.txt}</span></div>`).join("")}<div class="s">Aus der gefühlten Temperatur der Vorhersage, eingeteilt nach der DWD-Skala.</div></div>`;
+  // Biowetter
+  const bp = bioPerioden();
+  if (bp?.out.length) {
+    const blk = bp.out.map(([lab, p]) => {
+      const rel = p.effekte.filter(([, v]) => bioRelevant(v));
+      return `<div class="bper"><b>${lab}</b>${rel.length ? rel.map(([n, v]) => `<div class="brow"><span>${esc(bioName(n))}</span><i class="bv ${bioFarbe(v)}">${esc(v)}</i></div>`).join("") : `<div class="s">Kein nennenswerter Wettereinfluss.</div>`}</div>`;
+    }).join("");
+    const rat = bp.out[0][1].rat.find(([, v]) => v)?.[1];
+    h += `<div class="tile wide"><div class="k">Biowetter, Gebiet ${esc(bp.z.id)}</div>${blk}${rat ? `<div class="s brat">${esc(rat)}</div>` : ""}<div class="s">DWD-Gefahrenindizes für Wetterfühlige, Stand ${esc(bp.stand || "–")}</div></div>`;
+  }
+  return `<section class="blk"><h2>Gesundheit</h2><div class="tiles">${h}</div></section>`;
+}
+
+/* ---------- Lage teilen ---------- */
+function lageText() {
+  const p = aktOrt(), d = S.daten[p.id]; if (!d) return null;
+  const c = d.cur, t0 = d.days[0], now = new Date(), L = [];
+  const n0 = v => v == null ? "–" : nf(v, 0);
+  L.push(`Wetterlage ${p.name}, ${WT[now.getDay()]} ${dmy(now)} ${hm(now)} Uhr`);
+  L.push(`Jetzt: ${n0(c.temp)} °C, ${zustand(c.icon, { prec: c.prec1h, cloud: c.cloud })}, gefühlt ${n0(c.felt)} °C`);
+  L.push(`Wind: ${dirName(c.dir)} ${n0(c.wind)} km/h, Böen ${n0(c.gust)} km/h`);
+  if (t0) L.push(`Heute: ${n0(t0.min)} bis ${n0(t0.max)} °C, Regenrisiko bis ${t0.ppMax} %, ${nf(t0.prec, 1)} mm, Böen bis ${n0(t0.gust)} km/h`);
+  const nc = nowcast(); if (nc?.zeigen) L.push(`Radar: ${nc.text}`);
+  if (d.alerts.length) d.alerts.forEach(a => L.push(`⚠️ ${a.head || a.ev} (Stufe ${sevStufe(a.sev)} von 4)${a.exp ? ", bis " + zeitText(new Date(a.exp)) : ""}`));
+  else L.push("Keine amtlichen Warnungen.");
+  const hw = hinweise(d); if (hw.length) L.push(`Schwellwerte 24 Std: ${hw.map(x => `${x.k} ${x.txt} (${zeitText(x.t)})`).join("; ")}`);
+  if (S.settings.extras) {
+    const pg = S.pegel;
+    if (pg?.v != null) {
+      const tr = pg.trend === 1 ? "steigend" : pg.trend === -1 ? "fallend" : "gleichbleibend";
+      const al = pegelAlarm();
+      L.push(`Weser, Pegel ${CFG.pegel.name}: ${rnd(pg.v)} cm, ${tr}${pg.d24 != null ? ` (24 Std ${pg.d24 >= 0 ? "+" : "−"}${Math.abs(Math.round(pg.d24))} cm)` : ""}${al?.ueber ? `, ALARMSCHWELLE ${al.schwelle} cm ÜBERSCHRITTEN` : ""}${pg.wt ? `, Wasser ${nf(pg.wt.v, 1)} °C` : ""}`);
+    }
+    const F = S.lage?.feuer; if (F && (F.wbi?.length || F.glfi?.length)) L.push(`Waldbrand/Grasland (${F.station}): WBI ${F.wbi?.[0] ?? "–"}, GLFI ${F.glfi?.[0] ?? "–"} von 5`);
+  }
+  if (S.settings.gesundheit) {
+    const pz = pollenZeilen(); if (pz?.zeilen.length) { const heute = pz.zeilen.filter(r => r.lv[0] > 0); if (heute.length) L.push(`Pollen heute: ${heute.map(r => `${r.lab} ${POLLEN_STUFEN[r.v[0]][1]}`).join(", ")}`); }
+    const b = t0 ? tagesBelastung(t0) : null; if (b && b.k[0] !== 0) L.push(`Belastung heute: ${b.k[1]} (${b.txt})`);
+  }
+  L.push("", "Quelle: Deutscher Wetterdienst" + (S.settings.extras ? ", PEGELONLINE" : ""));
+  if (/^https?:/.test(location.href)) L.push(location.origin + location.pathname);
+  return L.join("\n");
+}
+async function teilen() {
+  const text = lageText(); if (!text) { toast("Noch keine Daten zum Teilen."); return; }
+  if (navigator.share) {
+    try { await navigator.share({ title: "Wetterlage " + aktOrt().name, text }); return; }
+    catch (e) { if (e.name === "AbortError") return; }
+  }
+  try { await navigator.clipboard.writeText(text); toast("Lage in die Zwischenablage kopiert."); }
+  catch { toast("Teilen wird auf diesem Gerät nicht unterstützt."); }
+}
+
+/* =====================================================================
+   Einstellungen
+   ===================================================================== */
+function renderOrte() {
+  const el = $("#tab-orte"), orte = alleOrte(), cur = aktOrt(), st = S.settings;
+  const sw = (on, a, lab) => `<button class="switch" role="switch" aria-checked="${!!on}" data-a="${a}" aria-label="${lab}"></button>`;
+  let h = `<h1>Einstellungen</h1><p class="sub">Alles bleibt auf diesem Gerät. Kein Konto, keine Tracker.</p>`;
+  // Orte
+  h += `<section class="blk"><h2>Meine Orte <small>antippen zum Anzeigen</small></h2><div class="plist">`;
+  orte.forEach(o => {
+    const d = S.daten[o.id], c = d?.cur;
+    h += `<div class="prow${o.id === cur.id ? " cur" : ""}"><button class="pm" data-a="place:${o.id}">${c ? ico(c.icon, 30) : ""}<span class="pn"><b>${esc(o.name)}</b><span>${esc(o.label || (o.gps ? "Standort wird ermittelt" : ""))}${o.station ? ", Station angepinnt" : ""}</span></span><span class="pt">${c?.temp != null ? deg(c.temp) : ""}</span></button>${o.gps ? "" : `<button class="ibtn" data-a="edit:${o.id}" aria-label="${esc(o.name)} bearbeiten"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>`}</div>`;
+  });
+  h += `<div class="setting"><div>Aktueller Standort<span>Zusätzlich das Wetter an deiner GPS-Position, nur auf dem Gerät verarbeitet</span></div>${sw(S.gps.on, "gps", "Aktueller Standort")}</div></div>
+  <div class="search"><input type="search" id="qsearch" placeholder="Ort in Deutschland hinzufügen" autocomplete="off" aria-label="Ort suchen"><div class="results" id="qres" hidden></div></div></section>`;
+  // Warnungen
+  h += `<section class="blk"><h2>Warnungen</h2><div class="plist">
+    <div class="setting"><div>Mitteilung bei neuer Warnung<span>Meldet sich, wenn der DWD für einen deiner Orte warnt. Funktioniert, solange die App im Hintergrund geöffnet ist.</span></div>${sw(st.notify, "notify", "Mitteilungen")}</div></div></section>`;
+  // Einsatz
+  h += `<section class="blk"><h2>Für den Einsatz</h2><div class="plist">
+    <div class="setting"><div>Einsatz-Bereich anzeigen<span>Weser-Pegel mit Wassertemperatur, Waldbrand- und Graslandindex, Schwellwerte</span></div>${sw(st.extras, "extras", "Einsatz-Bereich")}</div>
+    ${st.extras ? `<div class="thr"><div><label for="t-boen">Böen ab km/h</label><input type="number" id="t-boen" inputmode="numeric" value="${st.schwellen.boen}"></div><div><label for="t-frost">Frost ab °C</label><input type="number" id="t-frost" inputmode="decimal" value="${st.schwellen.frost}"></div><div><label for="t-sicht">Sicht unter m</label><input type="number" id="t-sicht" inputmode="numeric" value="${st.schwellen.sicht}"></div></div>
+    <div class="thr two"><div><label for="t-pegel">Pegel-Alarm ab cm</label><input type="number" id="t-pegel" inputmode="numeric" placeholder="aus" value="${st.schwellen.pegel ?? ""}"></div><div class="hintc">Pegel ${esc(CFG.pegel.name)}${S.pegel?.v != null ? `, aktuell ${rnd(S.pegel.v)} cm` : ""}. Leer lassen schaltet den Alarm ab.</div></div>` : ""}
+  </div></section>`;
+  // Gesundheit
+  const regOpt = POLLEN_REGIONEN.map(([id, n]) => `<option value="${id}"${id === st.pollenRegion ? " selected" : ""}>${esc(n)}</option>`).join("");
+  const bioOpt = BIO_ZONEN.map(([id, n]) => `<option value="${id}"${id === st.bioZone ? " selected" : ""}>${id}: ${esc(n)}</option>`).join("");
+  h += `<section class="blk"><h2>Gesundheit</h2><div class="plist">
+    <div class="setting"><div>Gesundheit anzeigen<span>Pollenflug, gefühlte Belastung und Biowetter des DWD im Wetter-Tab</span></div>${sw(st.gesundheit, "ges", "Gesundheit")}</div>
+    ${st.gesundheit ? `<div class="thr one"><div><label for="s-pollen">Pollenflug-Region</label><select id="s-pollen">${regOpt}</select></div></div>
+    <div class="chipsel"><span>Diese Pollen anzeigen</span><div>${POLLEN_ARTEN.map(([k, n]) => `<button class="chip${st.pollenArten.includes(k) ? " on" : ""}" data-a="part:${k}" aria-pressed="${st.pollenArten.includes(k)}">${n}</button>`).join("")}</div></div>
+    <div class="thr one"><div><label for="s-bio">Biowetter-Gebiet</label><select id="s-bio">${bioOpt}</select></div></div>` : ""}
+  </div></section>`;
+  // Karte
+  h += `<section class="blk"><h2>Radarkarte</h2><div class="plist">
+    <div class="setting"><div>Kartenstil<span>Ohne Schlüssel zeigt die App die OpenStreetMap-Karte. Mit einem kostenlosen Schlüssel von <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noopener">carto.com/basemaps/apikey</a> wird die ruhigere CARTO-Karte geladen.</span></div></div>
+    <div class="thr one"><div><label for="t-carto">CARTO-Schlüssel (optional)</label><input type="text" id="t-carto" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="leer lassen für OpenStreetMap" value="${esc(st.cartoKey || "")}"></div></div>
+  </div></section>`;
+  // App
+  const L = S.lage;
+  const dst = L?.github ? `Automatischer Abruf über GitHub aktiv${L.stand ? `, Stand ${esc(L.stand)}` : ""}.` : "Automatischer Abruf über GitHub noch nicht eingerichtet: Waldbrand- und Graslandindex fehlen, Pollen und Biowetter kommen nur, wenn der DWD den direkten Abruf zulässt.";
+  h += `<section class="blk"><h2>App</h2><div class="plist">
+    <div class="setting"><div>Zusatzdaten<span>${dst}</span></div></div>
+    <div class="setting"><div>Alles neu laden<span>Wetter, Radar, Pegel und Zusatzdaten sofort abrufen</span></div><button class="btn ghost" data-a="neuladen">Laden</button></div>
+    ${S.installEvt ? `<div class="setting"><div>Als App installieren<span>Legt die Wetter-App auf den Startbildschirm</span></div><button class="btn" data-a="install">Installieren</button></div>` : ""}
+  </div></section>
+  <p class="foot">Daten: Deutscher Wetterdienst über Bright Sky und DWD Open Data, Pegel: WSV PEGELONLINE, Ortssuche und UV: Open-Meteo, Karte: OpenStreetMap (optional CARTO). Wettersymbole: Meteocons von Bas Milius (MIT-Lizenz). Angaben ohne Gewähr.</p>`;
+  el.innerHTML = h;
+  const qs = $("#qsearch"); let to = 0;
+  qs.addEventListener("input", () => { clearTimeout(to); to = setTimeout(() => suche(qs.value.trim()), 300); });
+  const ck = $("#t-carto"); if (ck) ck.addEventListener("change", () => {
+    st.cartoKey = ck.value.trim(); speichere();
+    if (RV.map && window.L) { RV.tiles?.remove(); RV.tiles = kachelLayer(window.L).addTo(RV.map); RV.tiles.bringToBack(); }
+    toast(st.cartoKey ? "CARTO-Karte wird verwendet." : "OpenStreetMap-Karte wird verwendet.");
+  });
+  ["boen", "frost", "sicht"].forEach(k => { const i = $("#t-" + k); if (i) i.addEventListener("change", () => { const v = parseFloat(i.value); if (!isNaN(v)) { st.schwellen[k] = v; speichere(); } }); });
+  const tp = $("#t-pegel"); if (tp) tp.addEventListener("change", () => { const v = parseFloat(tp.value); st.schwellen.pegel = isNaN(v) ? null : v; speichere(); toast(isNaN(v) ? "Pegel-Alarm aus." : `Pegel-Alarm ab ${v} cm.`); });
+  const sp = $("#s-pollen"); if (sp) sp.addEventListener("change", () => { st.pollenRegion = +sp.value; speichere(); });
+  const sb = $("#s-bio"); if (sb) sb.addEventListener("change", () => { st.bioZone = sb.value; speichere(); });
+}
+
 function nowChart(series) {
   const W = 340, H = 120, T = 10, B = 22, now = Date.now(), end = now + 120 * 60e3;
   const pts = series.filter(s => s.t.getTime() <= end + 60e3);
@@ -1787,35 +2097,6 @@ async function pruefeWarnungen() {
 /* =====================================================================
    Orte & Einstellungen
    ===================================================================== */
-function renderOrte() {
-  const el = $("#tab-orte"), orte = alleOrte(), cur = aktOrt();
-  let h = `<h1>Orte</h1><p class="sub">Tippe einen Ort an, um sein Wetter zu sehen.</p><div class="plist">`;
-  orte.forEach(o => {
-    const d = S.daten[o.id], c = d?.cur;
-    h += `<div class="prow${o.id === cur.id ? " cur" : ""}"><button class="pm" data-a="place:${o.id}">${c ? ico(c.icon, 30) : ""}<span class="pn"><b>${esc(o.name)}</b><span>${esc(o.label || (o.gps ? "Standort wird ermittelt" : ""))}${o.station ? ", Station angepinnt" : ""}</span></span><span class="pt">${c?.temp != null ? deg(c.temp) : ""}</span></button>${o.gps ? "" : `<button class="ibtn" data-a="edit:${o.id}" aria-label="${esc(o.name)} bearbeiten"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>`}</div>`;
-  });
-  h += `</div>
-  <div class="search"><input type="search" id="qsearch" placeholder="Ort in Deutschland hinzufügen" autocomplete="off" aria-label="Ort suchen"><div class="results" id="qres" hidden></div></div>
-  <section class="blk"><h2>Einstellungen</h2><div class="plist">
-    <div class="setting"><div>Aktueller Standort<span>Wetter für die GPS-Position, nur auf diesem Gerät verarbeitet</span></div><button class="switch" role="switch" aria-checked="${S.gps.on}" data-a="gps" aria-label="Aktueller Standort"></button></div>
-    <div class="setting"><div>Mitteilung bei neuer Warnung<span>Meldet sich, wenn der DWD für einen deiner Orte warnt. Funktioniert, solange die App im Hintergrund geöffnet ist.</span></div><button class="switch" role="switch" aria-checked="${S.settings.notify}" data-a="notify" aria-label="Mitteilungen"></button></div>
-    <div class="setting"><div>Für den Einsatz<span>Weser-Pegel, Schwellwerte und Waldbrand-Links im Wetter-Tab</span></div><button class="switch" role="switch" aria-checked="${S.settings.extras}" data-a="extras" aria-label="Einsatz-Bereich"></button></div>
-    ${S.settings.extras ? `<div class="thr"><div><label for="t-boen">Böen ab km/h</label><input type="number" id="t-boen" inputmode="numeric" value="${S.settings.schwellen.boen}"></div><div><label for="t-frost">Frost ab °C</label><input type="number" id="t-frost" inputmode="decimal" value="${S.settings.schwellen.frost}"></div><div><label for="t-sicht">Sicht unter m</label><input type="number" id="t-sicht" inputmode="numeric" value="${S.settings.schwellen.sicht}"></div></div>` : ""}
-    <div class="setting"><div>Radarkarte<span>Ohne Schlüssel zeigt die App die OpenStreetMap-Karte. Mit einem kostenlosen Schlüssel von <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noopener">carto.com/basemaps/apikey</a> wird die ruhigere CARTO-Karte geladen. Der Schlüssel bleibt nur auf diesem Gerät.</span></div></div>
-    <div class="thr one"><div><label for="t-carto">CARTO-Schlüssel (optional)</label><input type="text" id="t-carto" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="leer lassen für OpenStreetMap" value="${esc(S.settings.cartoKey || "")}"></div></div>
-    ${S.installEvt ? `<div class="setting"><div>Als App installieren<span>Legt die Wetter-App auf den Startbildschirm</span></div><button class="btn" data-a="install">Installieren</button></div>` : ""}
-  </div></section>
-  <p class="foot">Keine Anmeldung, keine Tracker. Orte und Einstellungen bleiben auf diesem Gerät. Daten: Deutscher Wetterdienst über Bright Sky, Ortssuche: Open-Meteo, Karte: OpenStreetMap (optional CARTO). Wettersymbole: Meteocons von Bas Milius (MIT-Lizenz).</p>`;
-  el.innerHTML = h;
-  const qs = $("#qsearch"); let to = 0;
-  qs.addEventListener("input", () => { clearTimeout(to); to = setTimeout(() => suche(qs.value.trim()), 300); });
-  const ck = $("#t-carto"); if (ck) ck.addEventListener("change", () => {
-    S.settings.cartoKey = ck.value.trim(); speichere();
-    if (RV.map && window.L) { RV.tiles?.remove(); RV.tiles = kachelLayer(window.L).addTo(RV.map); RV.tiles.bringToBack(); }
-    toast(S.settings.cartoKey ? "CARTO-Karte wird verwendet." : "OpenStreetMap-Karte wird verwendet.");
-  });
-  ["boen", "frost", "sicht"].forEach(k => { const i = $("#t-" + k); if (i) i.addEventListener("change", () => { const v = parseFloat(i.value); if (!isNaN(v)) { S.settings.schwellen[k] = v; speichere(); } }); });
-}
 let suchErg = [];
 async function suche(q) {
   const box = $("#qres"); if (!box) return;
@@ -1982,7 +2263,15 @@ document.addEventListener("click", async e => {
       else toast("Mitteilungen wurden im Browser nicht erlaubt.");
       render(); break;
     }
-    case "extras": S.settings.extras = !S.settings.extras; speichere(); render(); if (S.settings.extras && !S.pegel) ladePegel().then(render).catch(() => { }); break;
+    case "extras": S.settings.extras = !S.settings.extras; speichere(); render(); if (S.settings.extras) { ladePegel().then(render).catch(() => { }); ladeLage().then(render).catch(() => { }); } break;
+    case "teilen": teilen(); break;
+    case "ges": S.settings.gesundheit = !S.settings.gesundheit; speichere(); render(); if (S.settings.gesundheit) ladeLage(true).then(render).catch(() => { }); break;
+    case "part": {
+      const a = S.settings.pollenArten, i = a.indexOf(arg);
+      if (i >= 0) a.splice(i, 1); else a.push(arg);
+      speichere(); el.classList.toggle("on", i < 0); el.setAttribute("aria-pressed", String(i < 0)); break;
+    }
+    case "neuladen": if (S.lage) S.lage.ts = 0; toast("Wird neu geladen …"); aktualisiere(); break;
     case "install": if (S.installEvt) { S.installEvt.prompt(); S.installEvt = null; render(); } break;
     case "rplay": togglePlay(); break;
     case "hmode": S.hist.mode = arg; S.hist.err = null; renderHist(); break;
