@@ -1579,7 +1579,7 @@ const Sky = (() => {
     // Baumkronen als Struktur auf den Waldhängen
     const kronen = (von, bis, f, n) => { const a = []; for (let k = 0; k < n; k++) { const u = von + r() * (bis - von), y0 = f(u); a.push([u, y0 + r() * .12, .5 + r() * .8, r()]); } return a; };
     PZ = { fern1: pfad([[0, 1], ...fern1, [1, 1]]), fern2: pfad([[.48, 1], ...fern2, [1, 1]]), nadel: pfad(nadel), berg: pfad(berg), tal: pfad(tal), fluss: pfad(fluss), jakob: pfad(jakob), fels, wiese, raps, blumen,
-      kb: kronen(.22, .81, witt, 170), kj: kronen(.875, 1, jak, 50), denk: [.61, witt(.61) - .003], turm: [.945, jak(.945) - .003] };
+      kb: kronen(.22, .81, witt, 170), kj: kronen(.875, 1, jak, 50), denk: [.61, witt(.61) + .012], turm: [.945, jak(.945) - .003] };
   }
   function farbeLand(rgb, tiefe) {
     // Landschaftsfarbe an Tageszeit und Wetter anpassen: Dunst, Abendlicht, Nacht
@@ -1623,41 +1623,72 @@ const Sky = (() => {
     ctx.globalAlpha = 1;
   }
   function denkmal(x, y, s, nacht) {
-    const stein = farbeLand([184, 158, 110], .15), dunkel = mix(stein, [30, 24, 18], .35), lit = nacht > .05;
-    const f = c => ctx.fillStyle = css(lit ? mix(c, [255, 214, 150], nacht * .7) : c);
-    if (lit) { const g = ctx.createRadialGradient(x, y - 26 * s, 0, x, y - 26 * s, 60 * s); g.addColorStop(0, `rgba(255,205,140,${.45 * nacht})`); g.addColorStop(1, "rgba(255,205,140,0)"); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - 26 * s, 60 * s, 0, 6.283); ctx.fill(); }
-    f(dunkel); ctx.fillRect(x - 30 * s, y - 7 * s, 60 * s, 9 * s);                     // Ringterrasse
-    f(stein); ctx.fillRect(x - 30 * s, y - 9 * s, 60 * s, 3 * s);
-    [-30, 24].forEach(o => { f(stein); ctx.fillRect(x + o * s, y - 15 * s, 6 * s, 8 * s); for (let k = 0; k < 3; k++) ctx.fillRect(x + (o + k * 2.2) * s, y - 17 * s, 1.3 * s, 2 * s); }); // Ecktürme
-    f(dunkel); for (let k = -4; k <= 4; k++) ctx.fillRect(x + (k * 6 - 1) * s, y - 5 * s, 2 * s, 3 * s);    // Arkaden
-    f(stein); ctx.fillRect(x - 17 * s, y - 15 * s, 34 * s, 6 * s);                       // obere Terrasse
-    f(stein); ctx.fillRect(x - 8.5 * s, y - 46 * s, 17 * s, 31 * s);                     // Baldachin
-    ctx.fillStyle = css(lit ? [255, 236, 200] : mix(col.mid, col.hor, .5));               // Bogenöffnung
-    ctx.beginPath(); ctx.moveTo(x - 4 * s, y - 17 * s); ctx.lineTo(x - 4 * s, y - 33 * s); ctx.arc(x, y - 33 * s, 4 * s, Math.PI, 0); ctx.lineTo(x + 4 * s, y - 17 * s); ctx.fill();
-    f(dunkel); ctx.fillRect(x - 1.3 * s, y - 29 * s, 2.6 * s, 10 * s); ctx.beginPath(); ctx.arc(x, y - 30 * s, 1.5 * s, 0, 6.283); ctx.fill(); // Statue
-    f(dunkel); ctx.fillRect(x - 10 * s, y - 48 * s, 20 * s, 3 * s);
-    f(stein); ctx.beginPath(); ctx.moveTo(x - 9.5 * s, y - 48 * s); ctx.quadraticCurveTo(x - 9 * s, y - 62 * s, x, y - 64 * s); ctx.quadraticCurveTo(x + 9 * s, y - 62 * s, x + 9.5 * s, y - 48 * s); ctx.fill(); // Kuppel
-    f(stein); ctx.fillRect(x - 2 * s, y - 70 * s, 4 * s, 7 * s); ctx.beginPath(); ctx.arc(x, y - 70 * s, 2.2 * s, Math.PI, 0); ctx.fill(); // Laterne
+    // Nach dem Original: runde Ringterrasse mit Arkadenfenstern, in die Bergkuppe eingebettet,
+    // Sockel mit Treppen, Baldachin mit Rundbögen und Glockendach mit Laterne und Krone.
+    const dunst = .14, lit = nacht > .05, abend = Math.max(nacht, col.golden * .6);
+    let stein = farbeLand([190, 164, 116], dunst);
+    if (lit) stein = mix(stein, [236, 196, 128], nacht * .75);
+    const schatten = mix(stein, [40, 32, 24], .32), hell = mix(stein, [255, 240, 210], .25);
+    const F = c => ctx.fillStyle = css(c);
+    if (lit) { const g = ctx.createRadialGradient(x, y - 22 * s, 0, x, y - 22 * s, 62 * s); g.addColorStop(0, `rgba(255,200,130,${.42 * nacht})`); g.addColorStop(1, "rgba(255,200,130,0)"); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - 22 * s, 62 * s, 0, 6.283); ctx.fill(); }
+    const ty = y + 1 * s;
+    // Ringterrasse: Mauer (vordere Hälfte) und Plattform
+    F(schatten); ctx.beginPath(); ctx.ellipse(x, ty + 4 * s, 36 * s, 9 * s, 0, 0, Math.PI); ctx.lineTo(x - 36 * s, ty); ctx.ellipse(x, ty, 36 * s, 7.5 * s, 0, Math.PI, 0, true); ctx.closePath(); ctx.fill();
+    F(mix(stein, schatten, .35)); ctx.beginPath(); ctx.ellipse(x, ty, 36 * s, 7.5 * s, 0, 0, 6.283); ctx.fill();
+    F(hell); ctx.beginPath(); ctx.ellipse(x, ty - .6 * s, 34 * s, 6.4 * s, 0, 0, 6.283); ctx.fill();
+    // Arkadenfenster entlang der Mauer, abends warm erleuchtet
+    const fenster = abend > .05 ? css(mix([60, 50, 40], [255, 214, 140], abend), 1) : css(mix(schatten, [20, 20, 24], .35));
+    for (let k = 0; k < 11; k++) {
+      const a = Math.PI * (.12 + .76 * k / 10), fx = x - Math.cos(a) * 33 * s, fy = ty + Math.sin(a) * 7.4 * s + 1.2 * s;
+      ctx.fillStyle = fenster; ctx.beginPath(); ctx.moveTo(fx - 1.3 * s, fy + 2.6 * s); ctx.lineTo(fx - 1.3 * s, fy + .6 * s); ctx.arc(fx, fy + .6 * s, 1.3 * s, Math.PI, 0); ctx.lineTo(fx + 1.3 * s, fy + 2.6 * s); ctx.fill();
+    }
+    // Sockel mit Treppen
+    F(schatten); ctx.fillRect(x - 13 * s, y - 9 * s, 26 * s, 8 * s);
+    F(stein); ctx.fillRect(x - 13 * s, y - 10.5 * s, 26 * s, 2 * s);
+    F(hell); ctx.beginPath(); ctx.moveTo(x - 13 * s, y - 2 * s); ctx.lineTo(x - 21 * s, y - 1 * s); ctx.lineTo(x - 16 * s, y - 8 * s); ctx.lineTo(x - 13 * s, y - 8 * s); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x + 13 * s, y - 2 * s); ctx.lineTo(x + 21 * s, y - 1 * s); ctx.lineTo(x + 16 * s, y - 8 * s); ctx.lineTo(x + 13 * s, y - 8 * s); ctx.fill();
+    // Baldachin: Seitenfläche, Front mit Pfeilern und Rundbogen
+    F(schatten); ctx.fillRect(x + 9 * s, y - 39 * s, 4 * s, 29 * s);
+    F(stein); ctx.fillRect(x - 10 * s, y - 39 * s, 19 * s, 29 * s);
+    ctx.fillStyle = css(lit ? [255, 232, 190] : mix(col.mid, col.hor, .5));
+    ctx.beginPath(); ctx.moveTo(x - 5.2 * s, y - 10.5 * s); ctx.lineTo(x - 5.2 * s, y - 27 * s); ctx.arc(x - .5 * s, y - 27 * s, 4.7 * s, Math.PI, 0); ctx.lineTo(x + 4.2 * s, y - 10.5 * s); ctx.fill();
+    F(schatten); ctx.fillRect(x - 1.6 * s, y - 24 * s, 2.2 * s, 11 * s); ctx.beginPath(); ctx.arc(x - .5 * s, y - 25 * s, 1.5 * s, 0, 6.283); ctx.fill(); // Statue
+    F(schatten); ctx.fillRect(x + 10 * s, y - 31 * s, 2 * s, 9 * s);                     // seitlicher Bogen
+    // Gebälk mit Ecktürmchen
+    F(hell); ctx.fillRect(x - 11 * s, y - 44 * s, 24 * s, 5 * s);
+    F(schatten); ctx.fillRect(x - 11 * s, y - 40 * s, 24 * s, 1.2 * s);
+    F(stein); [-11, -2, 10].forEach(o => { ctx.fillRect(x + o * s, y - 47 * s, 3 * s, 3 * s); ctx.beginPath(); ctx.moveTo(x + o * s, y - 47 * s); ctx.lineTo(x + (o + 1.5) * s, y - 50 * s); ctx.lineTo(x + (o + 3) * s, y - 47 * s); ctx.fill(); });
+    // Glockendach
+    const dach = lit ? mix([96, 84, 74], [200, 160, 110], nacht * .5) : farbeLand([92, 82, 76], dunst);
+    ctx.fillStyle = css(dach); ctx.beginPath(); ctx.moveTo(x - 9.5 * s, y - 44 * s);
+    ctx.quadraticCurveTo(x - 9 * s, y - 55 * s, x + 1 * s, y - 60 * s); ctx.quadraticCurveTo(x + 11 * s, y - 55 * s, x + 11.5 * s, y - 44 * s); ctx.fill();
+    // Laterne mit Krone
+    F(stein); ctx.fillRect(x - .9 * s, y - 64 * s, 3.8 * s, 5 * s);
+    ctx.beginPath(); ctx.arc(x + 1 * s, y - 65.5 * s, 2 * s, 0, 6.283); ctx.fill();
+    ctx.fillRect(x + .5 * s, y - 70 * s, 1 * s, 3.5 * s);
+    // Bäume vor der Terrasse: das Denkmal sitzt im Wald
+    const baum = farbeLand([70, 104, 54], .18), baumH = farbeLand([96, 132, 70], .18);
+    [[-45, 9, 7.5], [-35, 15.5, 6.5], [-23, 18.5, 7], [-10, 19.5, 6.2], [4, 19.8, 7], [18, 18.6, 6.4], [31, 16, 7], [43, 10, 7.5], [-52, 4, 6.5], [51, 4, 6.5], [-28, 22, 6], [12, 23, 6]].forEach(([dx, dy, rr], k) => {
+      ctx.fillStyle = css(k % 2 ? baum : baumH); ctx.beginPath(); ctx.arc(x + dx * s, ty + dy * s, rr * s, 0, 6.283); ctx.fill();
+    });
   }
   function turm(x, y, s, nacht, t) {
-    const grau = farbeLand([222, 222, 216], .2), dunkel = mix(grau, [40, 44, 50], .3);
+    // Fernmeldeturm Jakobsberg, maßvoll proportioniert
+    const grau = farbeLand([222, 222, 216], .22), dunkel = mix(grau, [40, 44, 50], .3);
     ctx.fillStyle = css(grau);
-    ctx.beginPath(); ctx.moveTo(x - 3.2 * s, y + 2 * s); ctx.lineTo(x - 2.4 * s, y - 92 * s); ctx.lineTo(x + 2.4 * s, y - 92 * s); ctx.lineTo(x + 3.2 * s, y + 2 * s); ctx.fill(); // Schaft
-    ctx.fillStyle = css(dunkel); ctx.fillRect(x - 3.4 * s, y - 14 * s, 6.8 * s, 3 * s);                                  // Ring unten
-    ctx.fillStyle = css(grau); ctx.beginPath(); ctx.ellipse(x, y - 70 * s, 15 * s, 3 * s, 0, 0, 6.283); ctx.fill();      // Plattform
-    ctx.fillRect(x - 11 * s, y - 77 * s, 22 * s, 7 * s);
-    ctx.fillStyle = css(dunkel); ctx.fillRect(x - 11 * s, y - 75 * s, 22 * s, 2 * s);
-    ctx.fillStyle = css(grau); ctx.beginPath(); ctx.ellipse(x, y - 78 * s, 12 * s, 2.4 * s, 0, 0, 6.283); ctx.fill();
-    ctx.fillRect(x - 3.6 * s, y - 100 * s, 7.2 * s, 18 * s);                                                                // Oberteil
-    [[-6, -90], [6, -92]].forEach(([dx, dy]) => { ctx.beginPath(); ctx.arc(x + dx * s, y + dy * s, 2.2 * s, 0, 6.283); ctx.fill(); }); // Schüsseln
-    ctx.fillStyle = css(dunkel); ctx.fillRect(x - 4 * s, y - 101 * s, 8 * s, 2 * s);
-    ctx.fillStyle = css(grau); ctx.fillRect(x - .9 * s, y - 132 * s, 1.8 * s, 32 * s);                                      // Antenne
-    ctx.fillRect(x - 1.5 * s, y - 118 * s, 3 * s, 2 * s);
+    ctx.beginPath(); ctx.moveTo(x - 2.8 * s, y + 2 * s); ctx.lineTo(x - 2 * s, y - 58 * s); ctx.lineTo(x + 2 * s, y - 58 * s); ctx.lineTo(x + 2.8 * s, y + 2 * s); ctx.fill(); // Schaft
+    ctx.fillStyle = css(grau); ctx.beginPath(); ctx.ellipse(x, y - 42 * s, 10 * s, 2.2 * s, 0, 0, 6.283); ctx.fill();      // Plattform
+    ctx.fillRect(x - 7.5 * s, y - 47 * s, 15 * s, 5 * s);
+    ctx.fillStyle = css(dunkel); ctx.fillRect(x - 7.5 * s, y - 45.5 * s, 15 * s, 1.4 * s);
+    ctx.fillStyle = css(grau); ctx.beginPath(); ctx.ellipse(x, y - 47.5 * s, 8.5 * s, 1.8 * s, 0, 0, 6.283); ctx.fill();
+    ctx.fillRect(x - 2.8 * s, y - 64 * s, 5.6 * s, 10 * s);                                                                  // Oberteil
+    [[-4.5, -58], [4.5, -60]].forEach(([dx, dy]) => { ctx.beginPath(); ctx.arc(x + dx * s, y + dy * s, 1.6 * s, 0, 6.283); ctx.fill(); }); // Schüsseln
+    ctx.fillRect(x - .7 * s, y - 80 * s, 1.4 * s, 17 * s);                                                                   // Antenne
     if (nacht > .05 && Math.sin(t * 2.4) > .2) { // Flugbefeuerung
       ctx.fillStyle = `rgba(255,60,50,${nacht})`;
-      [[0, -132, 2], [0, -101, 1.6], [-11, -74, 1.4], [11, -74, 1.4]].forEach(([dx, dy, rr]) => { ctx.beginPath(); ctx.arc(x + dx * s, y + dy * s, rr * s, 0, 6.283); ctx.fill(); });
-      const g = ctx.createRadialGradient(x, y - 132 * s, 0, x, y - 132 * s, 10 * s); g.addColorStop(0, `rgba(255,60,50,${.35 * nacht})`); g.addColorStop(1, "rgba(255,60,50,0)");
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - 132 * s, 10 * s, 0, 6.283); ctx.fill();
+      [[0, -80, 1.7], [0, -64, 1.3], [-7.5, -44, 1.2], [7.5, -44, 1.2]].forEach(([dx, dy, rr]) => { ctx.beginPath(); ctx.arc(x + dx * s, y + dy * s, rr * s, 0, 6.283); ctx.fill(); });
+      const g = ctx.createRadialGradient(x, y - 80 * s, 0, x, y - 80 * s, 9 * s); g.addColorStop(0, `rgba(255,60,50,${.35 * nacht})`); g.addColorStop(1, "rgba(255,60,50,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - 80 * s, 9 * s, 0, 6.283); ctx.fill();
     }
   }
   function bergFarbe(stufe) {
