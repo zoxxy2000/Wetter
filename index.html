@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@300;400;500;600&display=swap" rel="stylesheet">
 <title>Wetter</title>
 <style>
 :root{
@@ -55,9 +55,10 @@ a{color:var(--rain)}
 .glass.busy svg{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .hero-main{margin-top:auto}
-.temp{font:300 112px/.86 var(--num);letter-spacing:-4px;margin-left:-4px}
+.temp{font:500 116px/.86 var(--num);letter-spacing:-3px;margin-left:-4px;text-shadow:0 2px 18px rgba(0,0,0,.18)}
 .cond{font:500 22px/1.2 var(--font);margin-top:10px}
-.hilo{font:500 16px var(--font);opacity:.92;margin-top:2px}
+.hilo{font:500 16px var(--font);opacity:.95;margin-top:3px;display:flex;flex-wrap:wrap;gap:2px 14px}
+.hilo b{font-weight:700}
 .rainhint{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding:6px 12px 6px 9px;border-radius:999px;
   background:rgba(8,24,52,.34);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font:500 15px var(--font);text-shadow:none}
 .station{font:400 12.5px/1.35 var(--font);opacity:.82;margin-top:10px;max-width:34em}
@@ -155,6 +156,47 @@ a{color:var(--rain)}
 /* Radar */
 #map{height:min(58vh,520px);border-radius:18px;overflow:hidden;background:var(--soft);position:relative;z-index:0}
 #map .leaflet-control-attribution{font-size:10px}
+/* ---------- Meteogramm ---------- */
+.mgp{padding:8px 4px 4px}
+.mg-scroll{overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.mg-scroll::-webkit-scrollbar{display:none}
+.mg{position:relative}
+.mg-cols{position:absolute;inset:0;display:flex}
+.mg-c{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;border:0;background:none;padding:0;border-radius:0}
+.mg-c.n{background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.mg-c.sel{background:color-mix(in srgb,var(--rain) 16%,transparent);border-radius:12px}
+.mg-h{height:22px;display:flex;align-items:flex-end;font:500 13px var(--font);color:var(--muted)}
+.mg-h em{font-style:normal;font-weight:700;color:var(--ink)}
+.mg-c.sel .mg-h{color:var(--ink);font-weight:700}
+.mg-i{height:40px;display:flex;align-items:center;justify-content:center}
+.mg-r{height:34px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;line-height:1.15;padding-top:3px}
+.mg-r b{font:600 13px var(--num);color:var(--rain)}
+.mg-r b.z{color:var(--muted);opacity:.45;font-weight:400}
+.mg-r i,.mg-w i{font:500 11.5px var(--num);font-style:normal;color:var(--muted)}
+.mg-r i{color:var(--rain);opacity:.8}
+.mg-w{height:40px;display:flex;flex-direction:column;align-items:center;line-height:1.1;gap:1px}
+.mg-w b{font:600 13px var(--num)}
+.mg-w .arrow{color:var(--muted)}
+.mg-svg{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.mg-axis{stroke:var(--line);stroke-width:1}
+.mg-sun{stroke:var(--sun);stroke-width:1.3;stroke-dasharray:3 3}
+.mg-t{font:600 13.5px var(--num);fill:var(--ink);text-anchor:middle;paint-order:stroke;stroke:var(--surface);stroke-width:3px}
+.mg-sl{font:700 10.5px var(--num);fill:#B57A00;text-anchor:middle}
+@media (prefers-color-scheme:dark){.mg-sl{fill:var(--sun)}}
+.mg-leg{display:flex;flex-wrap:wrap;gap:4px 14px;padding:6px 10px 2px;font-size:12px;color:var(--muted)}
+.mg-leg i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.mg-leg .lt{background:linear-gradient(90deg,#3d8fd6,#e8a23a,#d84a35)}
+.mg-leg .lr{background:var(--rain);width:8px;height:9px}
+.mg-info{padding:10px 10px 8px;border-top:1px solid var(--line);margin:8px 4px 0}
+.mg-info b{display:block;font:600 15px var(--font)}
+.mg-info span{display:block;font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+.mg-info .tip{font-size:12px;opacity:.8}
+.daydet .mg-scroll{margin:0 -4px}
+img.wi{display:block;flex:none;pointer-events:none}
+.thr.one{grid-template-columns:1fr}
+.osm-hell{filter:grayscale(.9) brightness(1.04) contrast(.9)}
+.osm-dunkel{filter:invert(1) hue-rotate(180deg) grayscale(.85) brightness(.8) contrast(.92)}
+
 .rctl{display:flex;align-items:center;gap:12px;margin:12px 4px 4px}
 .playbtn{width:46px;height:46px;flex:0 0 46px;border-radius:50%;border:0;background:var(--ink);color:var(--bg);display:grid;place-items:center}
 .rtime b{display:block;font:500 22px/1.1 var(--num)}
@@ -317,6 +359,7 @@ const CFG = {
   schwellen: { boen: 60, frost: 0, sicht: 1000 },   // km/h, °C, m
   refreshMin: 10,
   radarKm: 100,
+  cartoKey: "",   // optional; besser in der App unter Orte → Einstellungen eintragen (bleibt dann privat)
   links: {
     warnungen: "https://www.wettergefahren.de",
     wbi: "https://www.dwd.de/DE/leistungen/waldbrandgef/waldbrandgef.html",
@@ -466,25 +509,14 @@ const MOON_SVG = `<path d="M14.6 4a7.8 7.8 0 1 0 5.6 12.9A6.4 6.4 0 0 1 14.6 4z"
 const cloudSvg = (fill = "var(--cloud)", dx = 0, dy = 0, s = 1) => `<path transform="translate(${dx} ${dy}) scale(${s})" d="M7.2 19h10.3a4.1 4.1 0 0 0 .4-8.18 5.6 5.6 0 0 0-10.9 1.2A3.5 3.5 0 0 0 7.2 19z" fill="${fill}"/>`;
 const drops = (xs, col = "var(--rain)") => xs.map(x => `<line x1="${x + 1}" y1="18.2" x2="${x - 0.2}" y2="21.8" stroke="${col}" stroke-width="1.8" stroke-linecap="round"/>`).join("");
 const flakes = xs => xs.map((x, i) => `<circle cx="${x}" cy="${i % 2 ? 21 : 19.2}" r="1.25" fill="#8DB6E6"/>`).join("");
+const ICONS = new Set(["clear-day", "clear-night", "partly-cloudy-day", "partly-cloudy-night", "cloudy", "overcast", "overcast-day", "overcast-night", "fog", "fog-day", "fog-night", "wind", "rain", "drizzle", "sleet", "snow", "hail", "partly-cloudy-day-rain", "partly-cloudy-night-rain", "partly-cloudy-day-snow", "partly-cloudy-night-snow", "thunderstorms-rain", "thunderstorms-day-rain", "thunderstorms-night-rain", "raindrop", "sunrise", "sunset"]);
 function ico(name, size = 28) {
-  const n = name || "cloudy"; let g = "";
-  const up = "var(--cloud)";
-  switch (n) {
-    case "clear-day": g = sunSvg(); break;
-    case "clear-night": g = MOON_SVG; break;
-    case "partly-cloudy-day": g = `<g transform="translate(-2.6 -3) scale(.78)">${sunSvg()}</g>` + cloudSvg(up, 1.6, 2.2, .92); break;
-    case "partly-cloudy-night": g = `<g transform="translate(-2.4 -2.6) scale(.72)">${MOON_SVG}</g>` + cloudSvg(up, 1.6, 2.2, .92); break;
-    case "cloudy": g = cloudSvg("var(--cloud-dark)", 3.5, -3.2, .8) + cloudSvg(up, 0, 1); break;
-    case "fog": g = cloudSvg(up, 0, -4) + `<path d="M4 18.5h15M6 21.5h13" stroke="var(--cloud-dark)" stroke-width="1.8" stroke-linecap="round"/>`; break;
-    case "wind": g = `<path d="M3 9h11a2.6 2.6 0 1 0-2.6-2.6M3 13.5h15.5a2.6 2.6 0 1 1-2.6 2.6M3 18h7" fill="none" stroke="var(--cloud-dark)" stroke-width="1.9" stroke-linecap="round"/>`; break;
-    case "rain": g = cloudSvg(up, 0, -4) + drops([8, 12, 16]); break;
-    case "sleet": g = cloudSvg(up, 0, -4) + drops([8, 16]) + flakes([12]); break;
-    case "snow": g = cloudSvg(up, 0, -4) + flakes([8, 12, 16]); break;
-    case "hail": g = cloudSvg(up, 0, -4) + [8, 12, 16].map((x, i) => `<circle cx="${x}" cy="${i % 2 ? 20.8 : 19.3}" r="1.5" fill="none" stroke="var(--rain)" stroke-width="1.3"/>`).join(""); break;
-    case "thunderstorm": g = cloudSvg("var(--cloud-dark)", 0, -4) + `<path d="M12.6 14.2 9.8 18.6h2.8l-1.5 4.2 4.6-5.8h-2.8l1.6-2.8z" fill="var(--sun)"/>`; break;
-    default: g = cloudSvg(up, 0, 1);
-  }
-  return `<svg class="wi" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true">${g}</svg>`;
+  // Animierte Wettersymbole: Meteocons von Bas Milius (MIT-Lizenz)
+  let n = name || "cloudy";
+  if (n === "thunderstorm") n = "thunderstorms-rain";
+  if (!ICONS.has(n)) n = n.replace(/-(day|night)$/, ""), n = ICONS.has(n) ? n : "cloudy";
+  const s = Math.round(size * 1.45), m = Math.round((size - s) / 2);
+  return `<img class="wi" src="icons/${n}.svg" width="${s}" height="${s}" style="margin:${m}px" alt="" decoding="async">`;
 }
 function arrowSvg(dir, size = 16) {
   if (dir == null) return "";
@@ -525,7 +557,7 @@ const S = {
   gps: store.get("gps", { on: false, lat: null, lon: null, label: "" }),
   curId: store.get("cur", null),
   settings: Object.assign({ extras: true, notify: false, schwellen: { ...CFG.schwellen } }, store.get("settings", {})),
-  raw: {}, daten: {}, radar: null, pegel: store.get("pegel", null),
+  raw: {}, daten: {}, radar: null, mgSel: {}, pegel: store.get("pegel", null),
   tab: "wetter", selHour: 0, openDay: null, busy: false, err: null,
   hist: { mode: "zeitraum", preset: "30", von: null, bis: null, monat: new Date().getMonth(), res: null, busy: false, err: null },
   seenAlerts: store.get("seenAlerts", []), installEvt: null
@@ -767,7 +799,7 @@ function renderHero(p, d) {
   const sun = Astro.sun(new Date(), p.lat, p.lon);
   $("#h-temp").textContent = c?.temp != null ? deg(c.temp) : "–";
   $("#h-cond").textContent = c ? zustand(c.icon, { prec: c.prec1h, cloud: c.cloud, night: sun.alt < -2 }) : (S.err ? "Keine Daten" : "Lädt …");
-  $("#h-hilo").textContent = heute ? `H ${deg(heute.max)}  T ${deg(heute.min)}${c?.felt != null ? `   Gefühlt ${deg(c.felt)}` : ""}` : "";
+  $("#h-hilo").innerHTML = heute ? `<span>Höchst <b>${deg(heute.max)}</b></span><span>Tiefst <b>${deg(heute.min)}</b></span>${c?.felt != null ? `<span>Gefühlt <b>${deg(c.felt)}</b></span>` : ""}` : "";
   const nc = nowcast();
   $("#h-rain").innerHTML = nc?.zeigen ? `<span class="rainhint">${ico("rain", 20)}${esc(nc.text)}</span>` : "";
   let st = "";
@@ -808,10 +840,10 @@ function renderWetter() {
   // Schwellen
   const hw = hinweise(d);
   if (hw.length) h += `<section class="blk"><h2>Schwellwerte <small>nächste 24 Std</small></h2><div class="limits">${hw.map(x => `<div class="limit"><span><b>${x.k}</b> ${x.txt}</span><span class="muted">${zeitText(x.t)}</span></div>`).join("")}</div></section>`;
-  // Heute – Stundenband
-  const band = bandEintraege(d, p);
-  if (S.selHour >= band.filter(x => !x.marker).length) S.selHour = 0;
-  h += `<section class="blk"><h2>Heute <small>${heuteSatz(d)}</small></h2><div class="panel flush"><div class="band" id="band">${bandHtml(band, S.selHour, "hour")}</div><div class="hdetail" id="hdetail">${stundeDetail(band.filter(x => !x.marker)[S.selHour]?.h)}</div></div></section>`;
+  // Nächste 24 Stunden – Diagramm
+  const hrsH = mgStunden(d, "heute");
+  const selH = Math.min(S.mgSel.heute ?? 0, hrsH.length - 1);
+  h += `<section class="blk"><h2>Nächste 24 Stunden <small>${heuteSatz(d)}</small></h2><div class="panel flush mgp">${meteogramm(hrsH, p, { id: "heute", sel: selH, jetzt: true })}<div data-mginfo="heute">${mgInfo(hrsH[selH], p)}</div></div></section>`;
   // Woche
   h += `<section class="blk"><h2>Die Woche <small>${d.days.length} Tage</small></h2><div class="panel flush days">${wocheHtml(d)}</div></section>`;
   // Jetzt gemessen
@@ -820,7 +852,6 @@ function renderWetter() {
   if (S.settings.extras) h += extrasHtml();
   h += `<p class="foot">Wetter, Radar und Warnungen: Deutscher Wetterdienst über die offene Bright-Sky-API. UV-Index: Open-Meteo. Pegel: WSV PEGELONLINE. Stand ${hm(new Date(d.ts))} Uhr. Angaben ohne Gewähr; andere Apps wie FeWIS nutzen teils Modellwerte (MOSMIX) und können abweichen.</p>`;
   body.innerHTML = h;
-  const sel = $("#band .hr.sel"); if (sel && S.selHour === 0) $("#band").scrollLeft = 0;
 }
 const sevStufe = s => ({ minor: 1, moderate: 2, severe: 3, extreme: 4 })[s] || 1;
 function zeitText(d) {
@@ -888,6 +919,103 @@ function stundeDetail(h) {
     <div><span>UV-Index</span><b>${h.uv == null ? "–" : nf(h.uv, 0)}</b></div>
   </div>`;
 }
+/* ---------- Meteogramm (Stundenverlauf als Diagramm) ---------- */
+const MG = { CW: 50, HH: 22, HI: 40, HC: 118, HR: 34, HW: 40 };
+function nachtStunde(h, p) { return Astro.sun(new Date(h.t.getTime() + 1800e3), p.lat, p.lon).alt < -0.83; }
+function stundenIcon(h, p) {
+  let icon = h.icon || "cloudy";
+  const night = nachtStunde(h, p);
+  icon = night ? icon.replace("-day", "-night") : icon.replace("-night", "-day");
+  if (icon === "rain" && (h.prec ?? 0) < 0.3) icon = "drizzle";
+  if (icon === "cloudy" && (h.cloud ?? 100) >= 92) icon = "overcast";
+  return icon;
+}
+function glatt(pts) {
+  if (pts.length < 2) return "";
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    d += ` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+function meteogramm(hrs, p, o = {}) {
+  const n = hrs.length; if (!n) return "";
+  const { CW, HH, HI, HC, HR, HW } = MG, W = n * CW, H = HH + HI + HC + HR + HW;
+  const y0 = HH + HI; // Beginn Diagrammbereich
+  const temps = hrs.map(h => h.temp).filter(v => v != null);
+  let lo = Math.min(...temps), hi = Math.max(...temps);
+  if (hi - lo < 5) { const m = (hi + lo) / 2; lo = m - 2.5; hi = m + 2.5; }
+  const TT = y0 + 20, TB = y0 + 70; // Temperaturband
+  const ty = v => TB - (v - lo) / (hi - lo) * (TB - TT);
+  const pts = hrs.map((h, i) => h.temp == null ? null : [i * CW + CW / 2, ty(h.temp)]).filter(Boolean);
+  const pmax = Math.max(2, ...hrs.map(h => h.prec ?? 0));
+  const RB = y0 + HC - 4, RHmax = 38;
+  const gid = "tg" + (o.id || "x").replace(/\W/g, "");
+  // Farbverlauf entlang der Temperatur
+  const stops = hrs.map((h, i) => h.temp == null ? "" : `<stop offset="${((i + .5) / n * 100).toFixed(1)}%" stop-color="${tempFarbe(h.temp)}"/>`).join("");
+  let svg = `<svg class="mg-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><defs><linearGradient id="${gid}" x1="0" x2="1" y1="0" y2="0">${stops}</linearGradient>
+    <linearGradient id="${gid}f" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="var(--ink)" stop-opacity=".08"/><stop offset="1" stop-color="var(--ink)" stop-opacity="0"/></linearGradient></defs>`;
+  // Hilfslinien
+  svg += `<line x1="0" x2="${W}" y1="${RB + .5}" y2="${RB + .5}" class="mg-axis"/>`;
+  // Niederschlagsbalken
+  hrs.forEach((h, i) => {
+    const pr = h.prec ?? 0; if (pr < 0.05 && (h.pp ?? 0) < 10) return;
+    const bh = pr >= 0.05 ? Math.max(3, Math.min(1, pr / pmax) * RHmax) : 0;
+    const op = .35 + .65 * clamp((h.pp ?? 50) / 100, 0, 1);
+    if (bh) svg += `<rect x="${i * CW + CW * .2}" y="${RB - bh}" width="${CW * .6}" height="${bh}" rx="3" fill="var(--rain)" fill-opacity="${op.toFixed(2)}"/>`;
+  });
+  // Temperaturkurve
+  const path = glatt(pts);
+  if (path) {
+    svg += `<path d="${path} L${pts[pts.length - 1][0]},${RB} L${pts[0][0]},${RB} Z" fill="url(#${gid}f)"/>`;
+    svg += `<path d="${path}" fill="none" stroke="url(#${gid})" stroke-width="3" stroke-linecap="round"/>`;
+    hrs.forEach((h, i) => {
+      if (h.temp == null) return;
+      const x = i * CW + CW / 2, y = ty(h.temp);
+      svg += `<circle cx="${x}" cy="${y.toFixed(1)}" r="3" fill="var(--surface)" stroke="${tempFarbe(h.temp)}" stroke-width="2"/><text x="${x}" y="${(y - 9).toFixed(1)}" class="mg-t">${deg(h.temp)}</text>`;
+    });
+  }
+  // Sonnenauf- und -untergang
+  const a = hrs[0].t.getTime(), b = a + n * 3600e3;
+  for (let i = -1; i <= Math.ceil(n / 24) + 1; i++) {
+    const s = Astro.times(addDays(new Date(a), i), p.lat, p.lon); if (!s) continue;
+    for (const [up, tt] of [[true, s.rise], [false, s.set]]) {
+      const ms = tt.getTime(); if (ms <= a || ms >= b) continue;
+      const x = ((ms - a) / 3600e3) * CW;
+      svg += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${HH - 2}" y2="${H - 4}" class="mg-sun"/><g transform="translate(${(x - 21).toFixed(1)} ${RB - 17})"><rect width="42" height="14" rx="7" fill="var(--surface)"/><text x="21" y="10.5" class="mg-sl">${up ? "↑" : "↓"} ${hm(tt)}</text></g>`;
+    }
+  }
+  svg += `</svg>`;
+  // Spalten (antippbar), Nachtschattierung, Beschriftungen
+  const cols = hrs.map((h, i) => {
+    const night = nachtStunde(h, p), sel = i === o.sel;
+    const pr = h.prec ?? 0, pp = h.pp ?? 0;
+    const lab = o.jetzt && i === 0 ? "Jetzt" : pad(h.t.getHours());
+    const tag = i > 0 && h.t.getHours() === 0 ? `<em>${WT[h.t.getDay()]}</em>` : "";
+    return `<button class="mg-c${night ? " n" : ""}${sel ? " sel" : ""}" data-a="mg:${o.id}:${i}" style="width:${CW}px" aria-label="${pad(h.t.getHours())} Uhr, ${deg(h.temp)}, ${nf(pr, 1)} Millimeter, Wind ${h.wind == null ? "–" : rnd(h.wind)} km/h">
+      <span class="mg-h">${tag || lab}</span><span class="mg-i">${ico(stundenIcon(h, p), 30)}</span><span style="height:${HC}px"></span>
+      <span class="mg-r">${pr >= 0.05 ? `<b>${nf(pr, 1)}</b>` : "<b class=\"z\">–</b>"}<i>${pp >= 10 ? pp + " %" : ""}</i></span>
+      <span class="mg-w">${arrowSvg(h.dir, 13)}<b>${h.wind == null ? "–" : rnd(h.wind)}</b><i>${h.gust == null ? "" : "(" + rnd(h.gust) + ")"}</i></span>
+    </button>`;
+  }).join("");
+  return `<div class="mg-scroll" data-mg="${o.id}"><div class="mg" style="width:${W}px;height:${H}px"><div class="mg-cols">${cols}</div>${svg}</div></div>
+  <div class="mg-leg"><span><i class="lt"></i>Temperatur</span><span><i class="lr"></i>Niederschlag mm · Regenrisiko</span><span>Wind (Böen) km/h</span></div>`;
+}
+function mgInfo(h, p) {
+  if (!h) return "";
+  const vis = h.vis == null ? null : h.vis >= 10000 ? "über 10 km" : h.vis < 1000 ? rnd(h.vis) + " m" : nf(h.vis / 1000, 1) + " km";
+  const teile = [`Gefühlt ${deg(h.felt)}`];
+  if (h.hum != null) teile.push(`Feuchte ${rnd(h.hum)} %`);
+  if (h.cloud != null) teile.push(`Bewölkung ${rnd(h.cloud)} %`);
+  if (vis) teile.push(`Sicht ${vis}`);
+  if (h.uv != null && h.uv >= 1) teile.push(`UV ${nf(h.uv, 0)}`);
+  if (h.pres != null) teile.push(`${rnd(h.pres)} hPa`);
+  const tag = sameDay(h.t, new Date()) ? "Heute" : sameDay(h.t, addDays(new Date(), 1)) ? "Morgen" : WTL[h.t.getDay()];
+  return `<div class="mg-info"><b>${tag}, ${pad(h.t.getHours())}:00 Uhr · ${esc(zustand(h.icon, { prec: h.prec, cloud: h.cloud, night: nachtStunde(h, p) }))}</b><span>${teile.join(" · ")}</span></div>`;
+}
+
 function wocheHtml(d) {
   const lo = Math.min(...d.days.map(x => x.min ?? 99)), hi = Math.max(...d.days.map(x => x.max ?? -99)), span = Math.max(1, hi - lo);
   const curT = d.cur?.temp;
@@ -895,22 +1023,24 @@ function wocheHtml(d) {
     const a = ((t.min - lo) / span) * 100, b = ((t.max - lo) / span) * 100;
     const dot = i === 0 && curT != null ? `<b style="left:${clamp((curT - lo) / span * 100, 0, 100)}%"></b>` : "";
     const open = S.openDay === t.k;
-    return `<div><button class="day" data-a="day:${t.k}" aria-expanded="${open}"><span class="d">${i === 0 ? "Heute" : WT[t.date.getDay()]}</span>${ico(t.icon, 26)}<span class="p">${t.ppMax >= 20 ? t.ppMax + "%" : ""}</span><span class="lo">${deg(t.min)}</span><span class="range"><i style="left:${a}%;right:${100 - b}%;background:linear-gradient(90deg,${tempFarbe(t.min)},${tempFarbe(t.max)})"></i>${dot}</span><span class="hi">${deg(t.max)}</span></button>${open ? tagDetail(t, d) : ""}</div>`;
+    return `<div><button class="day" data-a="day:${t.k}" aria-expanded="${open}"><span class="d">${i === 0 ? "Heute" : WT[t.date.getDay()]}</span>${ico(t.icon, 30)}<span class="p">${t.ppMax >= 20 ? t.ppMax + "%" : ""}</span><span class="lo">${deg(t.min)}</span><span class="range"><i style="left:${a}%;right:${100 - b}%;background:linear-gradient(90deg,${tempFarbe(t.min)},${tempFarbe(t.max)})"></i>${dot}</span><span class="hi">${deg(t.max)}</span></button>${open ? tagDetail(t, d) : ""}</div>`;
   }).join("");
 }
-function tagDetail(t, d) {
-  const p = aktOrt();
-  const items = bandEintraege(d, p, t);
+function mgStunden(d, id) {
+  if (id === "heute") { const now = Date.now(); const s = Math.max(0, d.hours.findIndex(x => x.t.getTime() > now - 3600e3)); return d.hours.slice(s, s + 24); }
+  return d.days.find(x => x.k === id)?.hours || [];
+}
+function tagZus(t) {
   const len = t.rise && t.set ? (t.set - t.rise) / 3600e3 : null;
-  return `<div class="daydet"><div class="band">${bandHtml(items, -1, "noop")}</div>
-  <div class="kv">
-    <div><span>Aufgang</span><b>${t.rise ? hm(t.rise) : "–"}</b></div>
-    <div><span>Untergang</span><b>${t.set ? hm(t.set) : "–"}</b></div>
-    <div><span>Tageslänge</span><b>${len ? `${Math.floor(len)}:${pad(Math.round((len % 1) * 60))} Std` : "–"}</b></div>
-    <div><span>Niederschlag</span><b>${nf(t.prec, 1)} mm</b></div>
-    <div><span>Stärkste Böe</span><b>${rnd(t.gust)} km/h</b></div>
-    <div><span>Sonne</span><b>${nf(t.sunH, 1)} Std</b></div>
-  </div></div>`;
+  const teile = [];
+  if (t.rise && t.set) teile.push(`Sonne ${hm(t.rise)}–${hm(t.set)} Uhr${len ? ` (${Math.floor(len)}:${pad(Math.round((len % 1) * 60))} Std)` : ""}`);
+  teile.push(`${nf(t.sunH, 1)} Std Sonnenschein`, `Niederschlag ${nf(t.prec, 1)} mm`, `stärkste Böe ${rnd(t.gust)} km/h`);
+  if (t.uv != null) teile.push(`UV bis ${nf(t.uv, 0)}`);
+  return `<div class="mg-info"><b>${WTL[t.date.getDay()]}, ${dmy(t.date)}</b><span>${teile.join(" · ")}</span><span class="tip">Stunde antippen für Details</span></div>`;
+}
+function tagDetail(t, d) {
+  const p = aktOrt(), sel = S.mgSel[t.k] ?? -1;
+  return `<div class="daydet">${meteogramm(t.hours, p, { id: t.k, sel })}<div data-mginfo="${t.k}">${sel >= 0 ? mgInfo(t.hours[sel], p) : tagZus(t)}</div></div>`;
 }
 function jetztHtml(d, p) {
   const c = d.cur, t = d.days[0];
@@ -976,14 +1106,33 @@ function nowChart(series) {
    Himmel – animierte Datenvisualisierung
    ===================================================================== */
 const Sky = (() => {
-  const KEYS = [[-18, "#0A0F24", "#151C38"], [-12, "#0F1733", "#232A52"], [-7, "#1A2556", "#4B3F72"], [-3, "#27387A", "#B9716A"], [0, "#34539A", "#E89A62"], [4, "#3F6DB3", "#F2BC7A"], [10, "#4A85CC", "#D9C9A6"], [20, "#3E7FCC", "#A8CBEA"], [60, "#2E6FC4", "#93C1EB"]];
+  /* Himmel als Datenvisualisierung: Farben aus Sonnenstand, Wolken aus Bewölkung,
+     Niederschlag aus Radar/Messung, Mond und Sterne aus der Astronomie.
+     Übergänge werden weich überblendet, nichts schneidet hart um. */
+  // [Sonnenhöhe, Zenit, Mitte, Horizont]
+  const KEYS = [
+    [-18, "#060A1C", "#0B1230", "#141B3A"],
+    [-12, "#0B1330", "#16204A", "#2A2F5E"],
+    [-7, "#152256", "#2E3B7A", "#7A5A86"],
+    [-3, "#1F3478", "#4A5A9E", "#E08A6E"],
+    [0, "#2B4A92", "#6A7FB8", "#F4A66A"],
+    [4, "#3260A8", "#7FA0CF", "#F6C88E"],
+    [10, "#3A74BE", "#86AFDD", "#DCD6C4"],
+    [22, "#2F72C6", "#73AEE6", "#BFDDF4"],
+    [60, "#1F64C2", "#5FA2E6", "#B4D7F5"]
+  ];
   const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
-  const mix = (a, b, t) => a.map((v, i) => Math.round(lerp(v, b[i], t)));
-  const css = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+  const KH = KEYS.map(k => [k[0], hex(k[1]), hex(k[2]), hex(k[3])]);
+  const mix = (a, b, t) => a.map((v, i) => lerp(v, b[i], t));
+  const css = (c, a = 1) => `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${a})`;
   let cv, ctx, W = 0, H = 0, dpr = 1, raf = 0, on = true, last = 0, reduced = false;
   const st = { lat: 52.2, lon: 8.9, cloud: .35, precip: 0, type: null, wind: 10, upcoming: 0 };
-  let clouds = [], parts = [], stars = [], flash = 0, nextFlash = 0, col = null, hills = null, astro = null, astroT = 0;
-  function rand(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+  let col = null, ziel = null, astro = null, astroT = 0, spriteT = 0;
+  let clouds = [], drops = [], flakes = [], stars = [], hills = [], fogB = [];
+  let regen = 0, schnee = 0, regenZiel = 0, schneeZiel = 0;
+  let flash = 0, nextFlash = 0, bolt = null, shoot = null, nextShoot = 0, seedN = 1;
+
+  function rand(seed) { let s = seed % 2147483647; if (s <= 0) s += 2147483646; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
   function init(c) {
     cv = c; ctx = cv.getContext("2d");
     reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -994,159 +1143,324 @@ const Sky = (() => {
   function resize() {
     dpr = Math.min(2, devicePixelRatio || 1);
     const r = cv.getBoundingClientRect(); if (!r.width) return;
-    W = cv.width = Math.round(r.width * dpr); H = cv.height = Math.round(r.height * dpr);
-    build(); draw(0); loop();
+    const nw = Math.round(r.width * dpr), nh = Math.round(r.height * dpr);
+    if (nw === W && nh === H) return;
+    W = cv.width = nw; H = cv.height = nh;
+    ziel = farben(); col = ziel;
+    baueStatisch(); baueWolken(true); bauePartikel(); draw(0); loop();
   }
-  function set(o) { const before = JSON.stringify(st); Object.assign(st, o); if (JSON.stringify(st) !== before) { build(); if (reduced) draw(0); } }
+  function set(o) {
+    const vorher = JSON.stringify(st); Object.assign(st, o);
+    if (JSON.stringify(st) === vorher || !W) return;
+    ziel = farben();
+    if (!col) col = ziel;
+    baueWolken(false); bauePartikel();
+    if (reduced) { col = ziel; draw(0); }
+  }
+
+  /* ---------- Farben ---------- */
   function farben() {
     const now = new Date();
     if (!astro || now - astroT > 60e3) { astro = { sun: Astro.sun(now, st.lat, st.lon), moon: Astro.moon(now, st.lat, st.lon) }; astroT = now; }
     const a = astro.sun.alt;
-    let i = 1; while (i < KEYS.length - 1 && a > KEYS[i][0]) i++;
-    const [a0, t0, b0] = KEYS[i - 1], [a1, t1, b1] = KEYS[i];
+    let i = 1; while (i < KH.length - 1 && a > KH[i][0]) i++;
+    const [a0, z0, m0, h0] = KH[i - 1], [a1, z1, m1, h1] = KH[i];
     const k = clamp((a - a0) / (a1 - a0), 0, 1);
-    let top = mix(hex(t0), hex(t1), k), bot = mix(hex(b0), hex(b1), k);
-    const day = clamp((a + 6) / 12, 0, 1);
-    const gTop = mix([26, 31, 39], [112, 123, 134], day), gBot = mix([39, 46, 56], [170, 178, 186], day);
-    const wet = ["rain", "snow", "sleet", "thunder"].includes(st.type) ? 1 : 0;
-    let ov = clamp(Math.pow(st.cloud, 1.6) * .8 + wet * .25 + (st.type === "thunder" ? .15 : 0) + st.upcoming * .3 + (st.type === "fog" ? .3 : 0), 0, .95);
-    top = mix(top, gTop, ov); bot = mix(bot, gBot, ov);
-    const dark = clamp((st.type === "thunder" ? .3 : 0) + wet * Math.min(.25, st.precip / 20) + st.upcoming * .18, 0, .5);
-    top = mix(top, [0, 0, 0], dark); bot = mix(bot, [0, 0, 0], dark * .8);
-    const golden = clamp(1 - Math.abs(a - 3) / 7, 0, 1) * (1 - ov);
-    let cloudC = mix(mix([62, 70, 86], [255, 255, 255], day), [255, 214, 186], golden * .6);
-    cloudC = mix(cloudC, mix([40, 46, 56], [150, 158, 168], day), clamp(wet * .6 + st.upcoming * .4 + (st.type === "thunder" ? .3 : 0), 0, .85));
-    return { top, bot, day, ov, cloudC, golden, alt: a };
+    let zen = mix(z0, z1, k), mid = mix(m0, m1, k), hor = mix(h0, h1, k);
+    const day = clamp((a + 6) / 14, 0, 1);
+    const nass = ["rain", "snow", "sleet", "thunder"].includes(st.type) ? 1 : 0;
+    const ov = clamp(Math.pow(st.cloud, 1.5) * .82 + nass * .22 + (st.type === "thunder" ? .15 : 0) + st.upcoming * .3 + (st.type === "fog" ? .35 : 0), 0, .96);
+    const grauZ = mix([20, 25, 33], [118, 130, 142], day), grauH = mix([34, 40, 50], [176, 184, 192], day);
+    zen = mix(zen, grauZ, ov); mid = mix(mid, mix(grauZ, grauH, .5), ov); hor = mix(hor, grauH, ov * .9);
+    const dunkel = clamp((st.type === "thunder" ? .32 : 0) + nass * Math.min(.22, st.precip / 18) + st.upcoming * .18, 0, .5);
+    zen = mix(zen, [0, 0, 0], dunkel); mid = mix(mid, [0, 0, 0], dunkel * .85); hor = mix(hor, [0, 0, 0], dunkel * .7);
+    const golden = clamp(1 - Math.abs(a - 2) / 8, 0, 1);
+    // Wolkenfarben: beleuchtete Oberseite, Schattenunterseite
+    let lit = mix([70, 78, 98], [255, 255, 255], day);
+    lit = mix(lit, [255, 205, 170], golden * .7 * (1 - ov * .6));
+    let shade = mix([28, 33, 46], [176, 188, 204], day);
+    shade = mix(shade, [150, 112, 132], golden * .45 * (1 - ov * .6));
+    const grau = clamp(nass * .55 + st.upcoming * .4 + (st.type === "thunder" ? .35 : 0) + Math.max(0, st.cloud - .8) * 1.2, 0, .9);
+    lit = mix(lit, mix([46, 52, 62], [168, 176, 186], day), grau * .8);
+    shade = mix(shade, mix([16, 19, 26], [92, 100, 112], day), grau);
+    return { zen, mid, hor, day, ov, golden, lit, shade, alt: a };
   }
-  function build() {
-    if (!W) return;
-    col = farben();
-    const r = rand(7);
-    // Wolken
-    const n = Math.round(2 + st.cloud * 13 + (st.type === "fog" ? 4 : 0));
-    clouds = [];
-    for (let i = 0; i < n; i++) {
-      const s = (0.55 + r() * 0.9) * W / 380;
-      const puffs = []; const np = 5 + Math.floor(r() * 4);
-      for (let j = 0; j < np; j++) puffs.push({ dx: (j - np / 2) * 22 * s + r() * 10 * s, dy: -r() * 18 * s, rr: (20 + r() * 22) * s });
-      const sprite = document.createElement("canvas"); const sw = Math.ceil((np * 22 + 110) * s), sh = Math.ceil(110 * s);
-      sprite.width = sw; sprite.height = sh; const sc = sprite.getContext("2d");
-      const alpha = clamp(.35 + st.cloud * .55, .35, .92);
-      puffs.forEach(pf => {
-        const x = sw / 2 + pf.dx, y = sh * .62 + pf.dy, g = sc.createRadialGradient(x, y - pf.rr * .25, pf.rr * .1, x, y, pf.rr);
-        g.addColorStop(0, css(mix(col.cloudC, [255, 255, 255], .15), alpha)); g.addColorStop(.6, css(col.cloudC, alpha * .75)); g.addColorStop(1, css(col.cloudC, 0));
-        sc.fillStyle = g; sc.beginPath(); sc.arc(x, y, pf.rr, 0, Math.PI * 2); sc.fill();
-      });
-      clouds.push({ x: r() * W * 1.3 - W * .15, y: (0.06 + r() * (st.type === "fog" ? .75 : .5)) * H, sp: .4 + r() * .8, sprite, front: r() > .55 });
+  function blend(a, b, t) {
+    const o = {};
+    for (const k in b) o[k] = Array.isArray(b[k]) ? mix(a[k], b[k], t) : (typeof b[k] === "number" ? lerp(a[k], b[k], t) : b[k]);
+    return o;
+  }
+
+  /* ---------- Szene aufbauen ---------- */
+  function baueStatisch() {
+    const r = rand(11);
+    stars = [];
+    for (let i = 0; i < 220; i++) {
+      const warm = r();
+      stars.push({ x: r() * W, y: Math.pow(r(), 1.3) * H * .78, rr: (Math.pow(r(), 3) * 1.5 + .35) * dpr, ph: r() * 6.28, sp: .6 + r() * 1.8, c: warm < .15 ? "255,226,196" : warm > .88 ? "205,220,255" : "255,255,255" });
     }
-    // Niederschlag
-    parts = [];
-    const area = (W * H) / (400 * 400 * dpr * dpr);
-    if (["rain", "thunder", "sleet"].includes(st.type)) {
-      const nr = Math.round(clamp(st.precip * 60, 50, 420) * area);
-      for (let i = 0; i < nr; i++) parts.push({ k: st.type === "sleet" && i % 2 ? "s" : "r", x: r() * W, y: r() * H, v: (10 + r() * 6) * dpr, l: (8 + r() * 10 + Math.min(st.precip, 10)) * dpr });
-    }
-    if (st.type === "snow") {
-      const ns = Math.round(clamp(st.precip * 120, 60, 280) * area);
-      for (let i = 0; i < ns; i++) parts.push({ k: "s", x: r() * W, y: r() * H, v: (0.6 + r() * 1.1) * dpr, rr: (1 + r() * 2) * dpr, ph: r() * 6.28 });
-    }
-    // Sterne
-    stars = []; for (let i = 0; i < 150; i++) stars.push({ x: r() * W, y: r() * H * .75, rr: (r() * 1.1 + .3) * dpr, ph: r() * 6.28 });
-    // Hügel (Weserbergland mit Porta-Lücke)
+    // Hügel: drei Ketten, die vorderste mit der Porta-Lücke
     hills = [];
-    for (const [lvl, base, amp, gap] of [[0, .86, .07, .6], [1, .93, .05, .58]]) {
+    const ketten = [[.80, .05, .66, 3.1, .35], [.865, .07, .60, 1.4, .55], [.935, .055, .57, 4.2, .8]];
+    ketten.forEach(([base, amp, gap, ph, tiefe]) => {
       const pts = [];
-      for (let x = 0; x <= 60; x++) {
-        const u = x / 60; let y = base - amp * (.55 + .25 * Math.sin(u * 7.1 + lvl * 2) + .2 * Math.sin(u * 17.3 + lvl));
-        y += amp * 1.05 * Math.exp(-Math.pow((u - gap) / .075, 2));
+      for (let x = 0; x <= 80; x++) {
+        const u = x / 80;
+        let y = base - amp * (.55 + .22 * Math.sin(u * 6.3 + ph) + .14 * Math.sin(u * 15.1 + ph * 2) + .07 * Math.sin(u * 37 + ph));
+        y += amp * 1.1 * Math.exp(-Math.pow((u - gap) / .06, 2));
         pts.push([u * W, y * H]);
       }
-      hills.push(pts);
-    }
-    const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.content = css(col.top);
+      hills.push({ pts, tiefe });
+    });
+    fogB = []; for (let i = 0; i < 5; i++) fogB.push({ y: .42 + i * .11 + r() * .04, sp: (.15 + r() * .35) * dpr, off: r() * W, h: (40 + r() * 50) * dpr });
   }
+  function wolkenSprite(c) {
+    const r = rand(c.seed);
+    const w = Math.ceil(c.w), h = Math.ceil(c.w * (c.flach ? .34 : .62));
+    const s = document.createElement("canvas"); s.width = w; s.height = h;
+    const g = s.getContext("2d");
+    const basis = h * (c.flach ? .6 : .84);
+    const nb = c.flach ? 46 : 34;
+    for (let i = 0; i < nb; i++) {
+      const u = (r() * 2 - 1) * (c.flach ? 1 : .92);
+      const kuppel = c.flach ? .3 : Math.max(0, 1 - u * u);
+      const rr = (c.flach ? h * (.2 + r() * .14) : h * (.12 + .2 * kuppel + r() * .1));
+      const x = clamp(w / 2 + u * (w / 2 - rr), rr + 1, w - rr - 1);
+      const y = clamp(basis - rr * .55 - kuppel * r() * h * (c.flach ? .08 : .36), rr + 1, h - rr - 1);
+      const gr = g.createRadialGradient(x, y, 0, x, y, rr);
+      gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(.55, "rgba(255,255,255,.85)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = gr; g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill();
+    }
+    // Volumen: oben Licht, unten Schatten
+    g.globalCompositeOperation = "source-atop";
+    const lg = g.createLinearGradient(0, h * .15, 0, h);
+    lg.addColorStop(0, css(mix(col.lit, [255, 255, 255], .12)));
+    lg.addColorStop(.5, css(mix(col.lit, col.shade, .35)));
+    lg.addColorStop(1, css(col.shade));
+    g.fillStyle = lg; g.fillRect(0, 0, w, h);
+    // Lichtsaum auf der Sonnenseite
+    const sx = astro ? clamp(.5 + astro.sun.az / 200, 0, 1) : .5;
+    if (col.day > .05 && astro.sun.alt > -4) {
+      const hx = (sx - c.x / Math.max(1, W)) > 0 ? w * .85 : w * .15;
+      const hg = g.createRadialGradient(hx, h * .2, 0, hx, h * .2, w * .55);
+      hg.addColorStop(0, `rgba(255,${Math.round(lerp(200, 250, col.day))},${Math.round(lerp(150, 235, col.day))},${.28 * (1 - col.ov * .7)})`);
+      hg.addColorStop(1, "rgba(255,240,220,0)");
+      g.fillStyle = hg; g.fillRect(0, 0, w, h);
+    }
+    return s;
+  }
+  function baueWolken(sofort) {
+    const r = rand(1000 + Math.round(st.cloud * 20) * 7 + (st.type ? st.type.length : 0));
+    const neu = [];
+    const deckel = st.cloud > .7 || ["rain", "snow", "sleet", "thunder", "fog"].includes(st.type);
+    // Schichtwolken (Wolkendecke)
+    if (deckel) {
+      const n = Math.round(4 + st.cloud * 5);
+      for (let i = 0; i < n; i++) neu.push({ seed: 50 + i * 13, flach: true, ebene: i % 2, w: W * (.7 + r() * .6), x: r() * W * 1.4 - W * .2, y: (.02 + r() * .32) * H, sp: .25 + r() * .3 });
+    }
+    // Haufenwolken in drei Ebenen
+    const n = Math.round(st.cloud * 11 + (st.cloud > .05 ? 2 : 0) - (deckel ? 3 : 0));
+    for (let i = 0; i < Math.max(0, n); i++) {
+      const ebene = i % 3;
+      const gr = [.42, .62, .9][ebene] * (.75 + r() * .55);
+      neu.push({ seed: 300 + i * 29, flach: false, ebene, w: W * gr * .6, x: r() * W * 1.3 - W * .15, y: ([.16, .3, .46][ebene] + (r() - .5) * .18) * H, sp: [.35, .6, 1][ebene] * (.8 + r() * .4) });
+    }
+    neu.forEach(c => { c.a = sofort ? 1 : 0; c.ziel = 1; c.sprite = wolkenSprite(c); });
+    if (sofort) clouds = neu;
+    else { clouds.forEach(c => c.ziel = 0); clouds = clouds.filter(c => c.a > .02).concat(neu); }
+    clouds.sort((a, b) => a.ebene - b.ebene);
+    spriteT = Date.now();
+  }
+  function neueFarbenFuerWolken() { clouds.forEach(c => { if (c.ziel > 0) c.sprite = wolkenSprite(c); }); spriteT = Date.now(); }
+  function bauePartikel() {
+    const area = (W * H) / (400 * 420 * dpr * dpr);
+    const r = rand(77 + seedN++);
+    const regnet = ["rain", "thunder", "sleet"].includes(st.type), schneit = ["snow", "sleet"].includes(st.type);
+    regenZiel = regnet ? clamp(.35 + st.precip / 6, .35, 1) : 0;
+    schneeZiel = schneit ? clamp(.45 + st.precip / 3, .45, 1) : 0;
+    if (regnet && drops.length === 0) for (let i = 0; i < Math.round(520 * area); i++) drops.push({ x: r() * W, y: r() * H, z: Math.pow(r(), 1.6), i: r() });
+    if (schneit && flakes.length === 0) for (let i = 0; i < Math.round(340 * area); i++) flakes.push({ x: r() * W, y: r() * H, z: Math.pow(r(), 1.4), ph: r() * 6.28, i: r() });
+  }
+
+  /* ---------- Zeichnen ---------- */
+  function himmelsPos(az, alt) { return [W * clamp(.5 + az / 200, .08, .92), H * .84 - clamp(alt / 55, -.12, 1) * H * .74]; }
   function moonDraw(x, y, r, ph, alpha) {
     ctx.save(); ctx.translate(x, y); ctx.globalAlpha = alpha;
-    const g = ctx.createRadialGradient(0, 0, r, 0, 0, r * 4); g.addColorStop(0, "rgba(240,236,220,.25)"); g.addColorStop(1, "rgba(240,236,220,0)");
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 4, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "rgba(200,205,220,.13)"; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    const g = ctx.createRadialGradient(0, 0, r * .8, 0, 0, r * 5); g.addColorStop(0, "rgba(235,232,215,.22)"); g.addColorStop(1, "rgba(235,232,215,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 5, 0, 6.283); ctx.fill();
+    ctx.fillStyle = "rgba(190,198,215,.12)"; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.fill();
+    ctx.save();
     let p = ph; if (p > 0.5) { ctx.scale(-1, 1); p = 1 - p; }
     const rx = r * Math.cos(2 * Math.PI * p);
-    ctx.fillStyle = "#F3EFE2"; ctx.beginPath();
-    ctx.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, false);
+    ctx.beginPath(); ctx.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, false);
     ctx.ellipse(0, 0, Math.abs(rx), r, 0, Math.PI / 2, -Math.PI / 2, rx < 0);
-    ctx.fill(); ctx.restore();
+    ctx.closePath();
+    const mg = ctx.createRadialGradient(-r * .3, -r * .3, r * .1, 0, 0, r); mg.addColorStop(0, "#FBF8EE"); mg.addColorStop(1, "#DCD6C3");
+    ctx.fillStyle = mg; ctx.fill(); ctx.clip();
+    ctx.fillStyle = "rgba(150,145,130,.22)";
+    [[-.3, -.2, .22], [.25, .3, .16], [.1, -.45, .1], [-.15, .45, .12], [.42, -.1, .09]].forEach(([cx, cy, cr]) => { ctx.beginPath(); ctx.arc(cx * r * (ph > .5 ? -1 : 1), cy * r, cr * r, 0, 6.283); ctx.fill(); });
+    ctx.restore(); ctx.restore();
   }
-  function himmelsPos(az, alt) {
-    return [W * clamp(.5 + az / 200, .08, .92), H * .86 - clamp(alt / 60, -.1, 1) * H * .78];
+  function blitzPfad() {
+    const r = rand(Math.floor(Math.random() * 1e6) + 1);
+    const pts = [[W * (.15 + r() * .7), H * .08]];
+    const ziel = H * (.66 + r() * .12);
+    while (pts[pts.length - 1][1] < ziel) { const [x, y] = pts[pts.length - 1]; pts.push([x + (r() - .5) * 38 * dpr, y + (12 + r() * 20) * dpr]); }
+    const aeste = [];
+    for (let i = 2; i < pts.length - 3; i++) if (r() < .25) {
+      const ast = [pts[i]]; let [x, y] = pts[i]; const dir = r() < .5 ? -1 : 1;
+      for (let j = 0; j < 3 + r() * 4; j++) { x += dir * (8 + r() * 18) * dpr; y += (10 + r() * 14) * dpr; ast.push([x, y]); }
+      aeste.push(ast);
+    }
+    return { pts, aeste, t: 0, dauer: 260 };
   }
+  function linie(pts) { ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); }
+
   function draw(dt) {
     if (!ctx || !W) return;
-    const t = performance.now() / 1000;
-    if (!col || Date.now() - astroT > 60e3) build();
-    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, css(col.top)); g.addColorStop(1, css(col.bot));
+    const t = performance.now() / 1000, k = dt / 16.7;
+    if (Date.now() - astroT > 60e3) { ziel = farben(); }
+    if (!col) col = ziel;
+    col = dt ? blend(col, ziel, 1 - Math.exp(-dt / 900)) : col;
+    if (Date.now() - spriteT > 90e3) neueFarbenFuerWolken();
+    regen = lerp(regen, regenZiel, dt ? 1 - Math.exp(-dt / 1500) : 1);
+    schnee = lerp(schnee, schneeZiel, dt ? 1 - Math.exp(-dt / 1500) : 1);
+    if (regen < .01 && regenZiel === 0) drops = [];
+    if (schnee < .01 && schneeZiel === 0) flakes = [];
+
+    // Himmelsverlauf
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, css(col.zen)); g.addColorStop(.55, css(col.mid)); g.addColorStop(.86, css(col.hor)); g.addColorStop(1, css(col.hor));
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     const a = astro.sun, m = astro.moon;
-    // Sterne
-    const sa = clamp((-a.alt - 4) / 8, 0, 1) * (1 - col.ov * 1.1);
-    if (sa > 0.02) { ctx.fillStyle = "#fff"; stars.forEach(s => { ctx.globalAlpha = sa * (.55 + .45 * Math.sin(t * 1.3 + s.ph)); ctx.beginPath(); ctx.arc(s.x, s.y, s.rr, 0, 6.283); ctx.fill(); }); ctx.globalAlpha = 1; }
-    // Mond
-    if (m.alt > -2 && a.alt < 8) { const [x, y] = himmelsPos(m.az, m.alt); moonDraw(x, y, 13 * dpr, m.phase, clamp(1 - col.ov * .9, .15, 1) * (a.alt > 0 ? .6 : 1)); }
-    // Sonne
-    if (a.alt > -3) {
-      const [x, y] = himmelsPos(a.az, a.alt), vis = clamp(1 - col.ov * 1.05, 0, 1);
-      if (vis > .02) {
-        const gg = ctx.createRadialGradient(x, y, 0, x, y, 120 * dpr);
-        gg.addColorStop(0, `rgba(255,${Math.round(lerp(190, 246, col.day))},${Math.round(lerp(120, 210, col.day))},${.9 * vis})`); gg.addColorStop(.12, `rgba(255,236,190,${.5 * vis})`); gg.addColorStop(1, "rgba(255,230,180,0)");
-        ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(x, y, 120 * dpr, 0, 6.283); ctx.fill();
-        ctx.fillStyle = `rgba(255,${Math.round(lerp(214, 250, col.day))},${Math.round(lerp(150, 225, col.day))},${vis})`;
-        ctx.beginPath(); ctx.arc(x, y, 11 * dpr, 0, 6.283); ctx.fill();
-      }
+    const [sx, sy] = himmelsPos(a.az, a.alt);
+    // Horizontglühen zur Dämmerung
+    const glut = clamp(1 - Math.abs(a.alt - 1) / 9, 0, 1) * (1 - col.ov * .8);
+    if (glut > .02) {
+      ctx.save(); ctx.translate(sx, H * .86); ctx.scale(1, .32);
+      const hg = ctx.createRadialGradient(0, 0, 0, 0, 0, W * .9);
+      hg.addColorStop(0, `rgba(255,160,90,${.55 * glut})`); hg.addColorStop(.4, `rgba(255,120,110,${.22 * glut})`); hg.addColorStop(1, "rgba(255,120,110,0)");
+      ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(0, 0, W * .9, 0, 6.283); ctx.fill(); ctx.restore();
     }
-    // Wolken (hinten)
-    const drift = Math.max(.06, st.wind / 45) * dpr * (dt / 16.7);
-    const wolken = front => clouds.forEach(c => {
-      if (c.front !== front) return;
-      c.x += drift * c.sp; if (c.x > W + c.sprite.width / 2) c.x = -c.sprite.width;
-      ctx.drawImage(c.sprite, c.x - c.sprite.width / 2, c.y - c.sprite.height / 2);
-    });
-    wolken(false);
-    // Hügel
-    hills.forEach((pts, i) => {
-      ctx.fillStyle = css(mix(col.bot, [10, 14, 20], i ? .62 : .42), 1);
-      ctx.beginPath(); ctx.moveTo(0, H); pts.forEach(([x, y]) => ctx.lineTo(x, y)); ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
-    });
-    wolken(true);
-    // Nebel
-    if (st.type === "fog") {
-      for (let i = 0; i < 3; i++) {
-        const y = H * (.45 + i * .17), off = (t * 8 * dpr * (i + 1)) % W;
-        const fg = ctx.createLinearGradient(0, y - 60 * dpr, 0, y + 60 * dpr); fg.addColorStop(0, "rgba(220,226,232,0)"); fg.addColorStop(.5, `rgba(220,226,232,${.28 + col.day * .12})`); fg.addColorStop(1, "rgba(220,226,232,0)");
-        ctx.fillStyle = fg; ctx.fillRect(-off, y - 60 * dpr, W * 2, 120 * dpr);
-      }
-    }
-    // Niederschlag
-    if (parts.length) {
-      const ang = clamp(st.wind / 90, 0, .55), k = dt / 16.7;
-      ctx.lineCap = "round";
-      parts.forEach(p => {
-        if (p.k === "r") {
-          p.y += p.v * k; p.x += p.v * ang * k;
-          if (p.y > H) { p.y = -p.l; p.x = Math.random() * W; } if (p.x > W) p.x -= W;
-          ctx.strokeStyle = `rgba(210,225,245,${.35 + col.day * .2})`; ctx.lineWidth = 1.2 * dpr;
-          ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.l * ang, p.y - p.l); ctx.stroke();
-        } else {
-          p.y += (p.v || 1.2 * dpr) * k; p.ph = (p.ph || 0) + .03 * k; p.x += (Math.sin(p.ph) * .6 + ang * 1.5) * dpr * k;
-          if (p.y > H) { p.y = -4; p.x = Math.random() * W; } if (p.x > W) p.x -= W; if (p.x < 0) p.x += W;
-          ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.beginPath(); ctx.arc(p.x, p.y, p.rr || 1.6 * dpr, 0, 6.283); ctx.fill();
+    // Sterne + Sternschnuppe
+    const sa = clamp((-a.alt - 5) / 8, 0, 1) * clamp(1 - col.ov * 1.15, 0, 1);
+    if (sa > .02) {
+      stars.forEach(s => { ctx.fillStyle = `rgba(${s.c},${sa * (.5 + .5 * Math.sin(t * s.sp + s.ph))})`; ctx.beginPath(); ctx.arc(s.x, s.y, s.rr, 0, 6.283); ctx.fill(); });
+      if (!reduced && sa > .5) {
+        if (!shoot && t > nextShoot) { if (nextShoot) shoot = { x: Math.random() * W * .7, y: Math.random() * H * .3, vx: (5 + Math.random() * 4) * dpr, vy: (2 + Math.random() * 2) * dpr, l: 1 }; nextShoot = t + 9 + Math.random() * 18; }
+        if (shoot) {
+          shoot.x += shoot.vx * k; shoot.y += shoot.vy * k; shoot.l -= .018 * k;
+          const sg = ctx.createLinearGradient(shoot.x, shoot.y, shoot.x - shoot.vx * 14, shoot.y - shoot.vy * 14);
+          sg.addColorStop(0, `rgba(255,255,255,${sa * shoot.l})`); sg.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.strokeStyle = sg; ctx.lineWidth = 1.4 * dpr; ctx.beginPath(); ctx.moveTo(shoot.x, shoot.y); ctx.lineTo(shoot.x - shoot.vx * 14, shoot.y - shoot.vy * 14); ctx.stroke();
+          if (shoot.l <= 0) shoot = null;
         }
+      }
+    }
+    // Mond
+    if (m.alt > -2 && a.alt < 10) { const [x, y] = himmelsPos(m.az, m.alt); moonDraw(x, y, 14 * dpr, m.phase, clamp(1 - col.ov * .95, .1, 1) * (a.alt > 0 ? .55 : 1)); }
+    // Sonne mit Strahlenkranz
+    if (a.alt > -4) {
+      const vis = clamp(1 - col.ov * 1.05, 0, 1) * clamp((a.alt + 4) / 5, 0, 1);
+      if (vis > .02) {
+        ctx.save(); ctx.globalCompositeOperation = "lighter";
+        const R = 170 * dpr;
+        const gg = ctx.createRadialGradient(sx, sy, 0, sx, sy, R);
+        gg.addColorStop(0, `rgba(255,${Math.round(lerp(170, 245, col.day))},${Math.round(lerp(100, 200, col.day))},${.75 * vis})`);
+        gg.addColorStop(.1, `rgba(255,225,170,${.35 * vis})`); gg.addColorStop(.4, `rgba(255,215,160,${.1 * vis})`); gg.addColorStop(1, "rgba(255,210,160,0)");
+        ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(sx, sy, R, 0, 6.283); ctx.fill();
+        {
+          const rot = t * .02;
+          for (let i = 0; i < 12; i++) {
+            const w0 = rot + i * Math.PI / 6, len = R * (.9 + .35 * Math.sin(i * 2.3 + t * .3));
+            const rg = ctx.createRadialGradient(sx, sy, 0, sx, sy, len);
+            rg.addColorStop(0, `rgba(255,240,210,${.05 * vis})`); rg.addColorStop(1, "rgba(255,240,210,0)");
+            ctx.fillStyle = rg;
+            ctx.beginPath(); ctx.moveTo(sx, sy);
+            ctx.lineTo(sx + Math.cos(w0 - .05) * len, sy + Math.sin(w0 - .05) * len);
+            ctx.lineTo(sx + Math.cos(w0 + .05) * len, sy + Math.sin(w0 + .05) * len); ctx.closePath(); ctx.fill();
+          }
+        }
+        ctx.restore();
+        ctx.fillStyle = `rgba(255,${Math.round(lerp(205, 252, col.day))},${Math.round(lerp(140, 232, col.day))},${vis})`;
+        ctx.beginPath(); ctx.arc(sx, sy, 12 * dpr, 0, 6.283); ctx.fill();
+      }
+    }
+    // Wolken
+    const drift = Math.max(.05, st.wind / 50) * dpr * k;
+    const wolken = (minE, maxE) => clouds.forEach(c => {
+      if (c.ebene < minE || c.ebene > maxE) return;
+      c.a = lerp(c.a, c.ziel, dt ? 1 - Math.exp(-dt / 1800) : 1);
+      c.x += drift * c.sp; const sw = c.sprite.width;
+      if (c.x - sw / 2 > W) c.x = -sw / 2;
+      const deck = c.flach ? .85 : 1;
+      ctx.globalAlpha = c.a * deck * [.62, .82, .96][c.ebene] * clamp(.45 + st.cloud * .7, .45, 1);
+      ctx.drawImage(c.sprite, c.x - sw / 2, c.y - c.sprite.height / 2);
+    });
+    wolken(0, 0);
+    // Hügel mit Dunst
+    hills.forEach((hl, i) => {
+      const fern = mix(col.hor, mix(col.zen, [8, 11, 16], .55), .35 + hl.tiefe * .5);
+      ctx.fillStyle = css(mix(fern, [6, 9, 14], hl.tiefe * .55 * (1 - col.day * .35)));
+      ctx.beginPath(); ctx.moveTo(0, H); hl.pts.forEach(([x, y]) => ctx.lineTo(x, y)); ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+      if (i === 0) wolken(1, 1);
+    });
+    wolken(2, 2);
+    clouds = clouds.filter(c => c.ziel > 0 || c.a > .01);
+    // Nebel
+    if (st.type === "fog" || col.ov > .8 && st.cloud > .95) {
+      const st2 = st.type === "fog" ? 1 : .4;
+      fogB.forEach(b => {
+        b.off = (b.off + b.sp * k) % (W * 2);
+        const y = H * b.y, fg = ctx.createLinearGradient(0, y - b.h, 0, y + b.h);
+        const fc = mix([200, 208, 216], [236, 240, 244], col.day);
+        fg.addColorStop(0, css(fc, 0)); fg.addColorStop(.5, css(fc, (.22 + col.day * .1) * st2)); fg.addColorStop(1, css(fc, 0));
+        ctx.fillStyle = fg; ctx.fillRect(0, y - b.h, W, b.h * 2);
       });
     }
-    // Blitz
-    if (st.type === "thunder" && !reduced) {
-      if (t > nextFlash) { flash = 1; nextFlash = t + 4 + Math.random() * 7; }
-      if (flash > 0) { ctx.fillStyle = `rgba(235,240,255,${flash * .55})`; ctx.fillRect(0, 0, W, H); flash = Math.max(0, flash - .06 * (dt / 16.7)); }
+    // Regen in drei Tiefen
+    if (drops.length && regen > .01) {
+      const ang = clamp(st.wind / 80, .03, .6);
+      const n = Math.round(drops.length * regen);
+      const rc = mix([150, 165, 190], [215, 228, 245], col.day);
+      ctx.lineCap = "round";
+      for (let i = 0; i < n; i++) {
+        const p = drops[i], v = (9 + p.z * 13) * dpr, l = (7 + p.z * 18 + Math.min(st.precip, 8)) * dpr;
+        p.y += v * k; p.x += v * ang * k;
+        if (p.y > H) { p.y = -l; p.x = Math.random() * W * 1.2 - W * .2; }
+        if (p.x > W) p.x -= W;
+        ctx.strokeStyle = css(rc, (.16 + p.z * .42) * (.6 + col.day * .4)); ctx.lineWidth = (.6 + p.z * 1.1) * dpr;
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - l * ang, p.y - l); ctx.stroke();
+      }
     }
+    // Schnee in drei Tiefen
+    if (flakes.length && schnee > .01) {
+      const ang = clamp(st.wind / 60, 0, .8), n = Math.round(flakes.length * schnee);
+      for (let i = 0; i < n; i++) {
+        const p = flakes[i], v = (.5 + p.z * 1.6) * dpr;
+        p.ph += .02 * k; p.y += v * k; p.x += (Math.sin(p.ph) * .5 + ang * (1 + p.z)) * dpr * k;
+        if (p.y > H) { p.y = -4; p.x = Math.random() * W; } if (p.x > W) p.x -= W; if (p.x < 0) p.x += W;
+        const rr = (.8 + p.z * 2.4) * dpr;
+        ctx.fillStyle = `rgba(255,255,255,${.35 + p.z * .55})`; ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, 6.283); ctx.fill();
+      }
+    }
+    // Gewitter
+    if (st.type === "thunder" && !reduced) {
+      if (t > nextFlash) { bolt = blitzPfad(); flash = 1; nextFlash = t + 5 + Math.random() * 8; }
+      if (bolt) {
+        bolt.t += dt; const al = clamp(1 - bolt.t / bolt.dauer, 0, 1) * (bolt.t < 60 || bolt.t > 110 ? 1 : .3);
+        ctx.save(); ctx.shadowColor = "rgba(190,205,255,.9)"; ctx.shadowBlur = 18 * dpr; ctx.lineJoin = "round";
+        ctx.strokeStyle = `rgba(240,244,255,${al})`; ctx.lineWidth = 2.2 * dpr; linie(bolt.pts);
+        ctx.lineWidth = 1.1 * dpr; bolt.aeste.forEach(linie); ctx.restore();
+        if (bolt.t > bolt.dauer) bolt = null;
+      }
+      if (flash > 0) { ctx.fillStyle = `rgba(225,232,255,${flash * .38})`; ctx.fillRect(0, 0, W, H); flash = Math.max(0, flash - .05 * k); }
+    }
+    // dezente Vignette für lesbaren Text
+    const vg = ctx.createLinearGradient(0, H * .45, 0, H); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,.18)");
+    ctx.fillStyle = vg; ctx.fillRect(0, H * .45, W, H * .55);
+    ctx.globalAlpha = 1;
+    const meta = document.querySelector('meta[name="theme-color"]'); if (meta && (!draw.mt || t - draw.mt > 2)) { meta.content = css(col.zen); draw.mt = t; }
   }
   function loop() {
     cancelAnimationFrame(raf);
@@ -1160,7 +1474,9 @@ const Sky = (() => {
     raf = requestAnimationFrame(step);
   }
   function active(v) { const was = on; on = v; if (v && !was) loop(); }
-  return { init, set, active };
+  // Vorschau verschiedener Wetterlagen (nur zum Testen): Sky.demo({type:"thunder", cloud:.9, precip:3})
+  function demo(o) { set(o); }
+  return { init, set, active, demo };
 })();
 
 /* =====================================================================
@@ -1180,9 +1496,12 @@ function ladeLeaflet() {
 }
 function kachelLayer(L) {
   const dark = matchMedia("(prefers-color-scheme: dark)").matches;
-  return L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark ? "dark_all" : "light_all"}/{z}/{x}/{y}{r}.png`, { maxZoom: 13, subdomains: "abcd", attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>, Radar: DWD' });
+  const key = (S.settings.cartoKey || CFG.cartoKey || "").trim();
+  if (key) return L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/${dark ? "dark_all" : "light_all"}/{z}/{x}/{y}.png?key=${encodeURIComponent(key)}`, { maxZoom: 13, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>, Radar: DWD' });
+  // ohne Schlüssel: OpenStreetMap, per Filter ruhig eingefärbt
+  return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 13, className: dark ? "osm-dunkel" : "osm-hell", attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende, Radar: DWD' });
 }
-const RV = { map: null, overlay: null, marker: null, idx: null, bounds: null, i: 0, play: false, timer: 0, key: null, CW: 360, CH: 360 };
+const RV = { map: null, tiles: null, overlay: null, marker: null, idx: null, bounds: null, i: 0, play: false, timer: 0, key: null, CW: 360, CH: 360 };
 function renderRadar() {
   const el = $("#tab-radar"), p = aktOrt();
   if (!el.dataset.built) {
@@ -1203,7 +1522,7 @@ function renderRadar() {
   ladeLeaflet().then(L => {
     if (!RV.map) {
       RV.map = L.map("map", { zoomControl: false, attributionControl: true }).setView([p.lat, p.lon], 8);
-      kachelLayer(L).addTo(RV.map);
+      RV.tiles = kachelLayer(L).addTo(RV.map);
       L.control.zoom({ position: "topright" }).addTo(RV.map);
     }
     setTimeout(() => RV.map.invalidateSize(), 50);
@@ -1482,12 +1801,19 @@ function renderOrte() {
     <div class="setting"><div>Mitteilung bei neuer Warnung<span>Meldet sich, wenn der DWD für einen deiner Orte warnt. Funktioniert, solange die App im Hintergrund geöffnet ist.</span></div><button class="switch" role="switch" aria-checked="${S.settings.notify}" data-a="notify" aria-label="Mitteilungen"></button></div>
     <div class="setting"><div>Für den Einsatz<span>Weser-Pegel, Schwellwerte und Waldbrand-Links im Wetter-Tab</span></div><button class="switch" role="switch" aria-checked="${S.settings.extras}" data-a="extras" aria-label="Einsatz-Bereich"></button></div>
     ${S.settings.extras ? `<div class="thr"><div><label for="t-boen">Böen ab km/h</label><input type="number" id="t-boen" inputmode="numeric" value="${S.settings.schwellen.boen}"></div><div><label for="t-frost">Frost ab °C</label><input type="number" id="t-frost" inputmode="decimal" value="${S.settings.schwellen.frost}"></div><div><label for="t-sicht">Sicht unter m</label><input type="number" id="t-sicht" inputmode="numeric" value="${S.settings.schwellen.sicht}"></div></div>` : ""}
+    <div class="setting"><div>Radarkarte<span>Ohne Schlüssel zeigt die App die OpenStreetMap-Karte. Mit einem kostenlosen Schlüssel von <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noopener">carto.com/basemaps/apikey</a> wird die ruhigere CARTO-Karte geladen. Der Schlüssel bleibt nur auf diesem Gerät.</span></div></div>
+    <div class="thr one"><div><label for="t-carto">CARTO-Schlüssel (optional)</label><input type="text" id="t-carto" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="leer lassen für OpenStreetMap" value="${esc(S.settings.cartoKey || "")}"></div></div>
     ${S.installEvt ? `<div class="setting"><div>Als App installieren<span>Legt die Wetter-App auf den Startbildschirm</span></div><button class="btn" data-a="install">Installieren</button></div>` : ""}
   </div></section>
-  <p class="foot">Keine Anmeldung, keine Tracker. Orte und Einstellungen bleiben auf diesem Gerät. Daten: Deutscher Wetterdienst über Bright Sky, Ortssuche: Open-Meteo, Karte: OpenStreetMap und CARTO.</p>`;
+  <p class="foot">Keine Anmeldung, keine Tracker. Orte und Einstellungen bleiben auf diesem Gerät. Daten: Deutscher Wetterdienst über Bright Sky, Ortssuche: Open-Meteo, Karte: OpenStreetMap (optional CARTO). Wettersymbole: Meteocons von Bas Milius (MIT-Lizenz).</p>`;
   el.innerHTML = h;
   const qs = $("#qsearch"); let to = 0;
   qs.addEventListener("input", () => { clearTimeout(to); to = setTimeout(() => suche(qs.value.trim()), 300); });
+  const ck = $("#t-carto"); if (ck) ck.addEventListener("change", () => {
+    S.settings.cartoKey = ck.value.trim(); speichere();
+    if (RV.map && window.L) { RV.tiles?.remove(); RV.tiles = kachelLayer(window.L).addTo(RV.map); RV.tiles.bringToBack(); }
+    toast(S.settings.cartoKey ? "CARTO-Karte wird verwendet." : "OpenStreetMap-Karte wird verwendet.");
+  });
   ["boen", "frost", "sicht"].forEach(k => { const i = $("#t-" + k); if (i) i.addEventListener("change", () => { const v = parseFloat(i.value); if (!isNaN(v)) { S.settings.schwellen[k] = v; speichere(); } }); });
 }
 let suchErg = [];
@@ -1612,8 +1938,21 @@ document.addEventListener("click", async e => {
       const d = S.daten[aktOrt().id]; const it = bandEintraege(d, aktOrt()).filter(x => !x.marker)[S.selHour];
       $("#hdetail").innerHTML = stundeDetail(it?.h); break;
     }
-    case "day": S.openDay = S.openDay === arg ? null : arg; { const d = S.daten[aktOrt().id]; $(".days").innerHTML = wocheHtml(d); } break;
-    case "place": S.curId = arg; S.selHour = 0; S.openDay = null; speichere(); S.tab = "wetter"; render(); window.scrollTo(0, 0); aktualisiere(); break;
+    case "day": {
+      S.openDay = S.openDay === arg ? null : arg; const d = S.daten[aktOrt().id]; $(".days").innerHTML = wocheHtml(d);
+      const sc = document.querySelector(`.mg-scroll[data-mg="${arg}"]`); if (sc && (S.mgSel[arg] ?? -1) < 0) sc.scrollLeft = 6 * MG.CW;
+      break;
+    }
+    case "mg": {
+      const cut = arg.lastIndexOf(":"), id = arg.slice(0, cut), idx = +arg.slice(cut + 1);
+      S.mgSel[id] = id !== "heute" && S.mgSel[id] === idx ? -1 : idx;
+      const box = document.querySelector(`.mg-scroll[data-mg="${id}"]`);
+      box?.querySelectorAll(".mg-c").forEach((b, j) => b.classList.toggle("sel", j === S.mgSel[id]));
+      const d = S.daten[aktOrt().id], hrs = mgStunden(d, id), inf = document.querySelector(`[data-mginfo="${id}"]`);
+      if (inf) inf.innerHTML = S.mgSel[id] >= 0 ? mgInfo(hrs[S.mgSel[id]], aktOrt()) : tagZus(d.days.find(x => x.k === id));
+      break;
+    }
+    case "place": S.curId = arg; S.selHour = 0; S.mgSel = {}; S.openDay = null; speichere(); S.tab = "wetter"; render(); window.scrollTo(0, 0); aktualisiere(); break;
     case "edit": oeffneEdit(arg); break;
     case "add": ortHinzu(+arg); break;
     case "close": schliesseSheet(); break;
