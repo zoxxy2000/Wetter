@@ -49,17 +49,12 @@ jobs:
           fi
           echo "lauf=$lauf" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         if: steps.zeit.outputs.lauf == 'true'
-
-      - uses: actions/setup-python@v5
-        if: steps.zeit.outputs.lauf == 'true'
-        with:
-          python-version: "3.12"
 
       - name: DWD-Zusatzdaten holen
         if: steps.zeit.outputs.lauf == 'true'
-        run: python tools/hole_daten.py
+        run: python3 tools/hole_daten.py   # Python ist auf dem Runner schon vorhanden
         continue-on-error: true
 
       - name: Seite zusammenstellen
@@ -70,11 +65,11 @@ jobs:
           cp -r icons daten _site/
           [ -f CNAME ] && cp CNAME _site/ || true
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         if: steps.zeit.outputs.lauf == 'true'
         with:
           path: _site
 
       - id: deploy
         if: steps.zeit.outputs.lauf == 'true'
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
