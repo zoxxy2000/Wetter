@@ -11,7 +11,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@300;400;500;600&display=swap" rel="stylesheet">
-<title>Wetter</title>
+<title>PW-Wetter</title>
+<meta name="application-name" content="PW-Wetter">
+<meta name="apple-mobile-web-app-title" content="PW-Wetter">
+<script src="version.js"></script>
 <style>
 :root{
   --bg:#E8ECEF; --surface:#FFFFFF; --soft:#F0F3F5; --ink:#1E2329; --muted:#66707A; --line:#D8DEE3;
@@ -27,9 +30,9 @@
     --rain:#6CA8E6;--cloud:#8E99A4;--cloud-dark:#65707B;--tab:rgba(20,27,32,.9);}
 }
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
+html,body{margin:0;min-height:100%}
 body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--font);-webkit-font-smoothing:antialiased;
-  padding-bottom:calc(62px + env(safe-area-inset-bottom));-webkit-tap-highlight-color:transparent}
+  padding-bottom:calc(var(--tabh, 64px) + env(safe-area-inset-bottom) + 28px);-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit;cursor:pointer}
 a{color:var(--rain)}
 :focus-visible{outline:2px solid var(--rain);outline-offset:2px;border-radius:8px}
@@ -1383,6 +1386,7 @@ function renderOrte() {
   const dst = L?.github ? `Automatischer Abruf über GitHub aktiv${L.stand ? `, Stand ${esc(L.stand)}` : ""}.` : "Automatischer Abruf über GitHub noch nicht eingerichtet: Waldbrand- und Graslandindex fehlen, Pollen und Biowetter kommen nur, wenn der DWD den direkten Abruf zulässt.";
   h += `<section class="blk"><h2>App</h2><div class="plist">
     <div class="setting"><div>Zusatzdaten<span>${dst}</span></div></div>
+    <div class="setting"><div>Version<span>PW-Wetter ${esc(self.APP_VERSION || "–")}</span></div></div>
     <div class="setting"><div>Alles neu laden<span>Wetter, Radar, Pegel und Zusatzdaten sofort abrufen</span></div><button class="btn ghost" data-a="neuladen">Laden</button></div>
     ${S.installEvt ? `<div class="setting"><div>Als App installieren<span>Legt die Wetter-App auf den Startbildschirm</span></div><button class="btn" data-a="install">Installieren</button></div>` : ""}
   </div></section>
@@ -1597,7 +1601,8 @@ const Sky = (() => {
   }
 
   /* ---------- Zeichnen ---------- */
-  function himmelsPos(az, alt) { return [W * clamp(.5 + az / 200, .08, .92), H * .84 - clamp(alt / 55, -.12, 1) * H * .74]; }
+  // Sonne und Mond im oberen rechten Himmelsbereich: frei von Ortsname und Temperatur
+  function himmelsPos(az, alt) { return [W * (.56 + .34 * clamp((az + 120) / 240, 0, 1)), H * (.42 - .26 * clamp(alt / 45, 0, 1)) + (alt < 0 ? H * .04 * clamp(-alt / 6, 0, 1) : 0)]; }
   function moonDraw(x, y, r, ph, alpha) {
     ctx.save(); ctx.translate(x, y); ctx.globalAlpha = alpha;
     const g = ctx.createRadialGradient(0, 0, r * .8, 0, 0, r * 5); g.addColorStop(0, "rgba(235,232,215,.22)"); g.addColorStop(1, "rgba(235,232,215,0)");
@@ -1715,7 +1720,7 @@ const Sky = (() => {
     // Hügel mit Dunst
     hills.forEach((hl, i) => {
       const fern = mix(col.hor, mix(col.zen, [8, 11, 16], .55), .35 + hl.tiefe * .5);
-      ctx.fillStyle = css(mix(fern, [6, 9, 14], hl.tiefe * .55 * (1 - col.day * .35)));
+      ctx.fillStyle = css(mix(fern, [14, 18, 26], hl.tiefe * .38 * (1 - col.day * .35)));
       ctx.beginPath(); ctx.moveTo(0, H); hl.pts.forEach(([x, y]) => ctx.lineTo(x, y)); ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
       if (i === 0) wolken(1, 1);
     });
@@ -1771,7 +1776,7 @@ const Sky = (() => {
       if (flash > 0) { ctx.fillStyle = `rgba(225,232,255,${flash * .38})`; ctx.fillRect(0, 0, W, H); flash = Math.max(0, flash - .05 * k); }
     }
     // dezente Vignette für lesbaren Text
-    const vg = ctx.createLinearGradient(0, H * .45, 0, H); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,.18)");
+    const vg = ctx.createLinearGradient(0, H * .45, 0, H); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,.1)");
     ctx.fillStyle = vg; ctx.fillRect(0, H * .45, W, H * .55);
     ctx.globalAlpha = 1;
     const meta = document.querySelector('meta[name="theme-color"]'); if (meta && (!draw.mt || t - draw.mt > 2)) { meta.content = css(col.zen); draw.mt = t; }
@@ -2372,6 +2377,12 @@ Sky.init($("#skycanvas"));
 ausCacheLaden();
 render();
 aktualisiere();
+</script>
+<script>
+// Abstand unten = tatsächliche Höhe der Tab-Leiste (inkl. Android-Gestenleiste)
+(() => { const t = document.getElementById("tabs"); if (!t) return;
+  const setz = () => document.documentElement.style.setProperty("--tabh", t.offsetHeight + "px");
+  new ResizeObserver(setz).observe(t); setz(); })();
 </script>
 </body>
 </html>

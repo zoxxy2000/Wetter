@@ -1,6 +1,6 @@
 {
-  "name": "Wetter Porta Westfalica",
-  "short_name": "Wetter",
+  "name": "PW-Wetter",
+  "short_name": "PW-Wetter",
   "description": "Wetter, Radar und amtliche Warnungen des Deutschen Wetterdienstes für deine Orte.",
   "lang": "de",
   "start_url": "./",

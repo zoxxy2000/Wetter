@@ -1,6 +1,7 @@
 // Service Worker: App-Hülle offline verfügbar, Karte & Schrift zwischenspeichern.
-const VERSION = "wetter-v5";
-const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png",
+importScripts("version.js");   // Versionsnummer nur in version.js ändern
+const VERSION = "wetter-" + self.APP_VERSION;
+const SHELL = ["./", "index.html", "version.js", "manifest.webmanifest", "icon-192.png", "icon-512.png",
   "icons/clear-day.svg", "icons/clear-night.svg", "icons/cloudy.svg", "icons/drizzle.svg", "icons/fog-day.svg", "icons/fog-night.svg", "icons/fog.svg", "icons/hail.svg", "icons/overcast-day.svg", "icons/overcast-night.svg", "icons/overcast.svg", "icons/partly-cloudy-day-rain.svg", "icons/partly-cloudy-day-snow.svg", "icons/partly-cloudy-day.svg", "icons/partly-cloudy-night-rain.svg", "icons/partly-cloudy-night-snow.svg", "icons/partly-cloudy-night.svg", "icons/rain.svg", "icons/raindrop.svg", "icons/sleet.svg", "icons/snow.svg", "icons/sunrise.svg", "icons/sunset.svg", "icons/thunderstorms-day-rain.svg", "icons/thunderstorms-night-rain.svg", "icons/thunderstorms-rain.svg", "icons/wind.svg"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
