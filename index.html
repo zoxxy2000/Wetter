@@ -621,7 +621,7 @@ function speichere() {
 }
 function alleOrte() {
   const a = [];
-  if (S.gps.on && S.gps.lat != null) a.push({ id: "gps", name: "Aktueller Standort", label: S.gps.label || "", lat: S.gps.lat, lon: S.gps.lon, station: null, gps: true });
+  if (S.gps.on && S.gps.lat != null) a.push({ id: "gps", name: "Aktueller Standort", label: S.gps.label || "", gemeinde: S.gps.gemeinde || "", lat: S.gps.lat, lon: S.gps.lon, station: null, gps: true });
   return a.concat(S.places);
 }
 function aktOrt() { const a = alleOrte(); return a.find(p => p.id === S.curId) || a[0]; }
@@ -846,7 +846,11 @@ function render() {
   renderBadge();
   Sky.active(S.tab === "wetter");
 }
-const istPorta = p => /porta westfalica/i.test(`${p.name} ${p.label || ""}`) || kmZwischen(p.lat, p.lon, 52.2333, 8.9167) < 7;
+const PORTA_ORTSTEILE = ["Barkhausen", "Costedt", "Eisbergen", "Hausberge", "Holtrup", "Holzhausen", "Kleinenbremen", "Lerbeck", "Lohfeld", "Möllbergen", "Nammen", "Neesen", "Veltheim", "Vennebeck", "Wülpke"];
+const istPorta = p => {
+  const txt = `${p.name} ${p.label || ""} ${p.gemeinde || ""}`, km = kmZwischen(p.lat, p.lon, 52.2333, 8.9167);
+  return /porta westfalica/i.test(txt) || km < 4 || (km < 16 && PORTA_ORTSTEILE.some(o => txt.includes(o)));
+};
 function renderHero(p, d) {
   const orte = alleOrte();
   $("#h-place").textContent = p.name;
@@ -1522,7 +1526,7 @@ const Sky = (() => {
       const warm = r();
       stars.push({ x: r() * W, y: Math.pow(r(), 1.3) * H * .78, rr: (Math.pow(r(), 3) * 1.5 + .35) * dpr, ph: r() * 6.28, sp: .6 + r() * 1.8, c: warm < .15 ? "255,226,196" : warm > .88 ? "205,220,255" : "255,255,255" });
     }
-    hills = st.porta ? portaBerge() : standardBerge();
+    hills = standardBerge(); PZ = null;
     fogB = []; for (let i = 0; i < 5; i++) fogB.push({ y: .42 + i * .11 + r() * .04, sp: (.15 + r() * .35) * dpr, off: r() * W, h: (40 + r() * 50) * dpr });
   }
   function standardBerge() {
@@ -1537,21 +1541,124 @@ const Sky = (() => {
     });
     return out;
   }
-  // Porta Westfalica von Süden: links Wiehengebirge mit Wittekindsberg und Kaiser-Wilhelm-Denkmal,
-  // rechts Wesergebirge mit Jakobsberg und Fernmeldeturm, dazwischen die Weser in der Pforte.
-  function portaBerge() {
-    const ridge = (von, bis, f) => { const pts = []; for (let x = 0; x <= 70; x++) { const u = von + (bis - von) * x / 70; pts.push([u * W, f(u) * H]); } return pts; };
-    const welle = (u, a) => a * (Math.sin(u * 23 + 1.3) * .5 + Math.sin(u * 51 + .4) * .3);
-    const fern = ridge(0, 1, u => .80 - .018 * Math.sin(u * 5.2 + 1) - welle(u, .005));
-    // Wiehengebirge: sanft ansteigend bis zum Wittekindsberg (u≈.70), dann steil hinab in die Pforte
-    const links = u => u < .70 ? .705 - .055 * Math.pow(u / .70, 1.3) - welle(u, .007) : .65 + .225 * Math.pow(Math.min(1, (u - .70) / .10), 1.6);
-    // Wesergebirge: steil aus der Pforte hinauf zum Jakobsberg (u≈.92), dann flacher nach Osten
-    const rechts = u => u < .92 ? .875 - .22 * Math.pow(Math.max(0, (u - .84) / .08), .75) : .655 + .02 * (u - .92) / .08;
-    return [
-      { pts: fern, stufe: 0 },
-      { pts: [...ridge(0, .80, links), [.80 * W, H]], stufe: 2, links: true },
-      { pts: [[.84 * W, H], ...ridge(.84, 1, rechts)], stufe: 2, rechts: true, denk: [.735, links(.735)], turm: [.92, rechts(.92)], fluss: [.80, .84], wy: .875 }
-    ];
+  /* Porta Westfalica nach Vorlage (Honig-Etikett): bewaldeter Wittekindsberg mit Kaiser-Wilhelm-Denkmal,
+     die Weser windet sich durch die Pforte, rechts der Jakobsberg mit Felswänden und Fernmeldeturm,
+     vorn Wiese und Rapsfeld. Rechtslastig aufgebaut, damit die Temperatur links frei bleibt. */
+  let PZ = null;
+  function portaSzene() {
+    const r = rand(4711);
+    const pfad = pts => { const p = new Path2D(); pts.forEach(([x, y], i) => i ? p.lineTo(x * W, y * H) : p.moveTo(x * W, y * H)); p.closePath(); return p; };
+    const kamm = (von, bis, f, kronen, tiefe) => { // Kammlinie mit Baumkronen
+      const pts = [], n = Math.max(8, Math.round(kronen * 6));
+      for (let k = 0; k <= n; k++) { const u = von + (bis - von) * k / n; pts.push([u, f(u) - tiefe * Math.abs(Math.sin(k / 6 * Math.PI)) * (.6 + .4 * Math.sin(u * 91))]); }
+      return pts;
+    };
+    const glatt = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+    const V = .83; // Fluchtpunkt der Pforte
+    const fern1 = kamm(0, 1, u => .665 - .02 * Math.sin(u * 4.1 + 1) + .03 * Math.exp(-Math.pow((u - V) / .07, 2)), 40, .004);
+    const fern2 = kamm(.48, 1, u => u < V ? .69 + .025 * glatt(.53, V, u) : .715 - .035 * glatt(V, 1, u), 40, .006);
+    // Nadelwald am linken Fuß
+    const nadel = [[0, 1]]; for (let x = 0; x <= .38; x += .011) { const b = .765 + .008 * Math.sin(x * 20); nadel.push([x, b], [x + .0055, b - .026 - .01 * r()]); } nadel.push([.38, .80], [.38, 1]);
+    // Wittekindsberg: breite, bewaldete Kuppe, rechts zur Weser abfallend
+    const witt = u => u <= .61 ? .615 + 1.4 * Math.pow(u - .61, 2) : .615 + .065 * glatt(.61, .72, u) + .12 * glatt(.70, .81, u);
+    const berg = [[.2, 1], ...kamm(.2, .81, witt, 30, .008), [.81, .81], [.81, 1]];
+    // Talboden der Pforte
+    const tal = [[.69, .80], [.81, .73], [V, .716], [.86, .73], [.94, .84], [.95, 1], [.63, 1]];
+    // Weser: aus der Pforte in Windungen nach vorn, vorn breiter
+    const mitte = [[V, .714], [.82, .726], [.798, .742], [.788, .762], [.802, .786], [.84, .812], [.866, .845], [.854, .885], [.81, .935], [.75, 1.0]];
+    const br = k => .003 + Math.pow(k / (mitte.length - 1), 1.6) * .065;
+    const fluss = [...mitte.map(([x, y], k) => [x - br(k), y]), ...mitte.map(([x, y], k) => [x + br(k), y]).reverse()];
+    // Jakobsberg: aus dem Tal hinauf zum Gipfel mit Turm, dann lang nach Osten
+    const jak = u => u < .945 ? .845 - .19 * glatt(.875, .945, u) : .655 - .012 * (u - .945) / .055;
+    const jakob = [[.875, 1], ...kamm(.875, 1, jak, 10, .007), [1, 1]];
+    const fels = [pfad([[.905, .80], [.912, .765], [.925, .755], [.932, .78], [.925, .81]]), pfad([[.965, .705], [.972, .688], [.993, .684], [.998, .705], [.98, .72]])];
+    // Vordergrund
+    const wiese = pfad([[0, .835], [.3, .85], [.55, .885], [.68, .93], [.7, 1], [0, 1]]);
+    const raps = pfad([[.79, .975], [.9, .925], [1, .9], [1, 1], [.79, 1]]);
+    const blumen = []; for (let k = 0; k < 50; k++) { const x = r() * .62, y = .85 + r() * .08; if (y > .838 + .09 * x) blumen.push([x, y, ["#e88aa0", "#f2d36b", "#b79ad8", "#ffffff", "#f29a6b"][k % 5], .6 + r()]); }
+    // Baumkronen als Struktur auf den Waldhängen
+    const kronen = (von, bis, f, n) => { const a = []; for (let k = 0; k < n; k++) { const u = von + r() * (bis - von), y0 = f(u); a.push([u, y0 + r() * .12, .5 + r() * .8, r()]); } return a; };
+    PZ = { fern1: pfad([[0, 1], ...fern1, [1, 1]]), fern2: pfad([[.48, 1], ...fern2, [1, 1]]), nadel: pfad(nadel), berg: pfad(berg), tal: pfad(tal), fluss: pfad(fluss), jakob: pfad(jakob), fels, wiese, raps, blumen,
+      kb: kronen(.22, .81, witt, 170), kj: kronen(.875, 1, jak, 50), denk: [.61, witt(.61) - .003], turm: [.945, jak(.945) - .003] };
+  }
+  function farbeLand(rgb, tiefe) {
+    // Landschaftsfarbe an Tageszeit und Wetter anpassen: Dunst, Abendlicht, Nacht
+    const nacht = clamp((-astro.sun.alt + 1) / 8, 0, 1);
+    let c = mix(rgb, col.hor, clamp(.08 + tiefe * .45 + col.ov * .3, 0, .85));
+    c = mix(c, [255, 176, 120], col.golden * .18 * (1 - col.ov));
+    c = mix(c, mix([16, 22, 34], col.zen, .35), nacht * .74);
+    return c;
+  }
+  function zeichnePorta(t) {
+    if (!PZ) portaSzene();
+    const s = W / 390, nacht = clamp((-astro.sun.alt - 2) / 6, 0, 1);
+    const fill = (p, rgb, tiefe, a = 1) => { ctx.fillStyle = css(farbeLand(rgb, tiefe), a); ctx.fill(p); };
+    const textur = (p, liste, rgb, tiefe) => { // Baumkronen andeuten
+      ctx.save(); ctx.clip(p);
+      const d = css(farbeLand(mix(rgb, [20, 40, 20], .35), tiefe), .55), l = css(farbeLand(mix(rgb, [230, 240, 180], .25), tiefe), .45);
+      liste.forEach(([u, y, g, z]) => { ctx.fillStyle = z < .55 ? d : l; ctx.beginPath(); ctx.arc(u * W, y * H, g * 3.2 * s, 0, 6.283); ctx.fill(); });
+      ctx.restore();
+    };
+    fill(PZ.fern1, [150, 172, 150], .85);
+    fill(PZ.fern2, [112, 140, 104], .55);
+    fill(PZ.tal, [126, 156, 84], .3);
+    // Weser spiegelt den Himmel
+    const wg = ctx.createLinearGradient(0, .71 * H, 0, H);
+    wg.addColorStop(0, css(mix(col.hor, [255, 255, 255], .25))); wg.addColorStop(1, css(mix(col.mid, mix(col.zen, [40, 70, 100], .3), .45)));
+    ctx.fillStyle = wg; ctx.fill(PZ.fluss);
+    ctx.save(); ctx.clip(PZ.fluss); ctx.strokeStyle = `rgba(255,255,255,${(.22 + .08 * Math.sin(t * 1.2)) * (1 - nacht * .6)})`; ctx.lineWidth = 1 * dpr;
+    for (let k = 0; k < 8; k++) { const y = (.76 + k * .028) * H, x = (.79 + .02 * Math.sin(k * 1.7)) * W + Math.sin(t * .8 + k) * 3 * dpr; ctx.beginPath(); ctx.moveTo(x - 7 * s * (1 + k * .4), y); ctx.lineTo(x + 7 * s * (1 + k * .4), y); ctx.stroke(); }
+    ctx.restore();
+    fill(PZ.jakob, [80, 116, 62], .22); textur(PZ.jakob, PZ.kj, [80, 116, 62], .22);
+    PZ.fels.forEach(f => { fill(f, [206, 186, 150], .28); ctx.strokeStyle = css(farbeLand([150, 130, 100], .28), .6); ctx.lineWidth = .8 * dpr; ctx.stroke(f); });
+    fill(PZ.nadel, [50, 82, 56], .35);
+    fill(PZ.berg, [90, 126, 64], .18); textur(PZ.berg, PZ.kb, [90, 126, 64], .18);
+    const lg = ctx.createLinearGradient(0, .6 * H, 0, .8 * H); lg.addColorStop(0, `rgba(255,250,220,${.14 * (1 - nacht) * (1 - col.ov)})`); lg.addColorStop(1, "rgba(255,250,220,0)");
+    ctx.fillStyle = lg; ctx.fill(PZ.berg); ctx.fill(PZ.jakob);
+    denkmal(PZ.denk[0] * W, PZ.denk[1] * H, s, nacht);
+    turm(PZ.turm[0] * W, PZ.turm[1] * H, s, nacht, t);
+    fill(PZ.wiese, [128, 160, 76], .05);
+    fill(PZ.raps, [214, 196, 72], .05);
+    if (nacht < .9) PZ.blumen.forEach(([x, y, c, g]) => { ctx.globalAlpha = (1 - nacht) * .8; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x * W, y * H, g * 1.6 * dpr, 0, 6.283); ctx.fill(); });
+    ctx.globalAlpha = 1;
+  }
+  function denkmal(x, y, s, nacht) {
+    const stein = farbeLand([184, 158, 110], .15), dunkel = mix(stein, [30, 24, 18], .35), lit = nacht > .05;
+    const f = c => ctx.fillStyle = css(lit ? mix(c, [255, 214, 150], nacht * .7) : c);
+    if (lit) { const g = ctx.createRadialGradient(x, y - 26 * s, 0, x, y - 26 * s, 60 * s); g.addColorStop(0, `rgba(255,205,140,${.45 * nacht})`); g.addColorStop(1, "rgba(255,205,140,0)"); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - 26 * s, 60 * s, 0, 6.283); ctx.fill(); }
+    f(dunkel); ctx.fillRect(x - 30 * s, y - 7 * s, 60 * s, 9 * s);                     // Ringterrasse
+    f(stein); ctx.fillRect(x - 30 * s, y - 9 * s, 60 * s, 3 * s);
+    [-30, 24].forEach(o => { f(stein); ctx.fillRect(x + o * s, y - 15 * s, 6 * s, 8 * s); for (let k = 0; k < 3; k++) ctx.fillRect(x + (o + k * 2.2) * s, y - 17 * s, 1.3 * s, 2 * s); }); // Ecktürme
+    f(dunkel); for (let k = -4; k <= 4; k++) ctx.fillRect(x + (k * 6 - 1) * s, y - 5 * s, 2 * s, 3 * s);    // Arkaden
+    f(stein); ctx.fillRect(x - 17 * s, y - 15 * s, 34 * s, 6 * s);                       // obere Terrasse
+    f(stein); ctx.fillRect(x - 8.5 * s, y - 46 * s, 17 * s, 31 * s);                     // Baldachin
+    ctx.fillStyle = css(lit ? [255, 236, 200] : mix(col.mid, col.hor, .5));               // Bogenöffnung
+    ctx.beginPath(); ctx.moveTo(x - 4 * s, y - 17 * s); ctx.lineTo(x - 4 * s, y - 33 * s); ctx.arc(x, y - 33 * s, 4 * s, Math.PI, 0); ctx.lineTo(x + 4 * s, y - 17 * s); ctx.fill();
+    f(dunkel); ctx.fillRect(x - 1.3 * s, y - 29 * s, 2.6 * s, 10 * s); ctx.beginPath(); ctx.arc(x, y - 30 * s, 1.5 * s, 0, 6.283); ctx.fill(); // Statue
+    f(dunkel); ctx.fillRect(x - 10 * s, y - 48 * s, 20 * s, 3 * s);
+    f(stein); ctx.beginPath(); ctx.moveTo(x - 9.5 * s, y - 48 * s); ctx.quadraticCurveTo(x - 9 * s, y - 62 * s, x, y - 64 * s); ctx.quadraticCurveTo(x + 9 * s, y - 62 * s, x + 9.5 * s, y - 48 * s); ctx.fill(); // Kuppel
+    f(stein); ctx.fillRect(x - 2 * s, y - 70 * s, 4 * s, 7 * s); ctx.beginPath(); ctx.arc(x, y - 70 * s, 2.2 * s, Math.PI, 0); ctx.fill(); // Laterne
+  }
+  function turm(x, y, s, nacht, t) {
+    const grau = farbeLand([222, 222, 216], .2), dunkel = mix(grau, [40, 44, 50], .3);
+    ctx.fillStyle = css(grau);
+    ctx.beginPath(); ctx.moveTo(x - 3.2 * s, y + 2 * s); ctx.lineTo(x - 2.4 * s, y - 92 * s); ctx.lineTo(x + 2.4 * s, y - 92 * s); ctx.lineTo(x + 3.2 * s, y + 2 * s); ctx.fill(); // Schaft
+    ctx.fillStyle = css(dunkel); ctx.fillRect(x - 3.4 * s, y - 14 * s, 6.8 * s, 3 * s);                                  // Ring unten
+    ctx.fillStyle = css(grau); ctx.beginPath(); ctx.ellipse(x, y - 70 * s, 15 * s, 3 * s, 0, 0, 6.283); ctx.fill();      // Plattform
+    ctx.fillRect(x - 11 * s, y - 77 * s, 22 * s, 7 * s);
+    ctx.fillStyle = css(dunkel); ctx.fillRect(x - 11 * s, y - 75 * s, 22 * s, 2 * s);
+    ctx.fillStyle = css(grau); ctx.beginPath(); ctx.ellipse(x, y - 78 * s, 12 * s, 2.4 * s, 0, 0, 6.283); ctx.fill();
+    ctx.fillRect(x - 3.6 * s, y - 100 * s, 7.2 * s, 18 * s);                                                                // Oberteil
+    [[-6, -90], [6, -92]].forEach(([dx, dy]) => { ctx.beginPath(); ctx.arc(x + dx * s, y + dy * s, 2.2 * s, 0, 6.283); ctx.fill(); }); // Schüsseln
+    ctx.fillStyle = css(dunkel); ctx.fillRect(x - 4 * s, y - 101 * s, 8 * s, 2 * s);
+    ctx.fillStyle = css(grau); ctx.fillRect(x - .9 * s, y - 132 * s, 1.8 * s, 32 * s);                                      // Antenne
+    ctx.fillRect(x - 1.5 * s, y - 118 * s, 3 * s, 2 * s);
+    if (nacht > .05 && Math.sin(t * 2.4) > .2) { // Flugbefeuerung
+      ctx.fillStyle = `rgba(255,60,50,${nacht})`;
+      [[0, -132, 2], [0, -101, 1.6], [-11, -74, 1.4], [11, -74, 1.4]].forEach(([dx, dy, rr]) => { ctx.beginPath(); ctx.arc(x + dx * s, y + dy * s, rr * s, 0, 6.283); ctx.fill(); });
+      const g = ctx.createRadialGradient(x, y - 132 * s, 0, x, y - 132 * s, 10 * s); g.addColorStop(0, `rgba(255,60,50,${.35 * nacht})`); g.addColorStop(1, "rgba(255,60,50,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - 132 * s, 10 * s, 0, 6.283); ctx.fill();
+    }
   }
   function bergFarbe(stufe) {
     // helle, dunstige Berge: Horizontfarbe mit leichtem Grün-Grau, nach vorn etwas kräftiger
@@ -1560,39 +1667,6 @@ const Sky = (() => {
     c = mix(c, [18, 28, 32], .1 + stufe * .11);
     const boden = [28 + stufe * 5, 34 + stufe * 5, 48 + stufe * 5];
     return c.map((v, i) => Math.max(v, boden[i]));
-  }
-  function portaDetails(hl, t) {
-    const nacht = clamp((-astro.sun.alt - 2) / 6, 0, 1), fc = bergFarbe(2);
-    // Weser in der Pforte, spiegelt den Himmel
-    const [f0, f1] = hl.fluss, wy = hl.wy * H;
-    const wg = ctx.createLinearGradient(0, wy, 0, H); wg.addColorStop(0, css(mix(col.hor, [255, 255, 255], .15), .9)); wg.addColorStop(1, css(mix(col.mid, col.zen, .4), .9));
-    ctx.fillStyle = wg; ctx.beginPath(); ctx.moveTo(f0 * W, wy); ctx.lineTo(f1 * W, wy); ctx.lineTo((f1 + .05) * W, H); ctx.lineTo((f0 - .05) * W, H); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = css([255, 255, 255], .18 + .1 * Math.sin(t * 1.3)); ctx.lineWidth = 1 * dpr;
-    for (let k = 0; k < 3; k++) { const yy = wy + (k + 1) * (H - wy) / 4, sp = (f1 - f0) * W * (.3 + k * .15); ctx.beginPath(); ctx.moveTo((f0 + f1) / 2 * W - sp / 2 + Math.sin(t + k) * 3 * dpr, yy); ctx.lineTo((f0 + f1) / 2 * W + sp / 2 + Math.sin(t + k) * 3 * dpr, yy); ctx.stroke(); }
-    // Kaiser-Wilhelm-Denkmal: Terrasse, Baldachin mit Kuppel
-    const [dx, dyf] = hl.denk, x = dx * W, y = dyf * H, s = W / 390;
-    ctx.fillStyle = css(mix(fc, [0, 0, 0], .12));
-    ctx.fillRect(x - 15 * s, y - 4 * s, 30 * s, 6 * s);           // Ringterrasse
-    ctx.fillRect(x - 8 * s, y - 13 * s, 16 * s, 9 * s);             // Baldachin
-    ctx.beginPath(); ctx.ellipse(x, y - 13 * s, 7.5 * s, 7 * s, 0, Math.PI, 0); ctx.fill();   // Kuppel
-    ctx.fillRect(x - 1 * s, y - 23 * s, 2 * s, 4 * s);              // Laterne
-    if (nacht > .05) { // angestrahlt
-      const g = ctx.createRadialGradient(x, y - 10 * s, 0, x, y - 10 * s, 26 * s);
-      g.addColorStop(0, `rgba(255,214,150,${.5 * nacht})`); g.addColorStop(1, "rgba(255,214,150,0)");
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - 10 * s, 26 * s, 0, 6.283); ctx.fill();
-      ctx.fillStyle = `rgba(255,226,180,${.85 * nacht})`;
-      ctx.fillRect(x - 8 * s, y - 13 * s, 16 * s, 9 * s); ctx.beginPath(); ctx.ellipse(x, y - 13 * s, 7.5 * s, 7 * s, 0, Math.PI, 0); ctx.fill();
-    }
-    // Fernmeldeturm auf dem Jakobsberg
-    const [tx, tyf] = hl.turm, X = tx * W, Y = tyf * H;
-    ctx.fillStyle = css(mix(fc, [0, 0, 0], .12));
-    ctx.beginPath(); ctx.moveTo(X - 3 * s, Y + 2 * s); ctx.lineTo(X - 1.6 * s, Y - 40 * s); ctx.lineTo(X + 1.6 * s, Y - 40 * s); ctx.lineTo(X + 3 * s, Y + 2 * s); ctx.fill();
-    ctx.fillRect(X - 4.5 * s, Y - 36 * s, 9 * s, 5 * s);           // Betriebsgeschoss
-    ctx.fillRect(X - .7 * s, Y - 58 * s, 1.4 * s, 18 * s);         // Antenne
-    if (nacht > .05 && Math.sin(t * 2.4) > .2) { // Flugbefeuerung
-      ctx.fillStyle = `rgba(255,60,50,${nacht})`; ctx.beginPath(); ctx.arc(X, Y - 58 * s, 1.8 * s, 0, 6.283); ctx.fill();
-      ctx.beginPath(); ctx.arc(X, Y - 36 * s, 1.4 * s, 0, 6.283); ctx.fill();
-    }
   }
   function wolkenSprite(c) {
     const r = rand(c.seed);
@@ -1769,7 +1843,7 @@ const Sky = (() => {
     }
     // Wolken
     const drift = Math.max(.05, st.wind / 50) * dpr * k;
-    const wolken = (minE, maxE) => clouds.forEach(c => {
+    const wolken = (minE, maxE) => { clouds.forEach(c => {
       if (c.ebene < minE || c.ebene > maxE) return;
       c.a = lerp(c.a, c.ziel, dt ? 1 - Math.exp(-dt / 1800) : 1);
       c.x += drift * c.sp; const sw = c.sprite.width;
@@ -1777,20 +1851,17 @@ const Sky = (() => {
       const deck = c.flach ? .85 : 1;
       ctx.globalAlpha = c.a * deck * [.62, .82, .96][c.ebene] * clamp(.45 + st.cloud * .7, .45, 1);
       ctx.drawImage(c.sprite, c.x - sw / 2, c.y - c.sprite.height / 2);
-    });
+    }); ctx.globalAlpha = 1; };   // Deckkraft zurücksetzen, sonst wird die Landschaft durchsichtig
     wolken(0, 0);
     // Hügel mit Dunst
-    hills.forEach((hl, i) => {
+    if (st.porta) { wolken(1, 1); wolken(2, 2); zeichnePorta(t); }   // in Porta alle Wolken hinter die Landschaft
+    else hills.forEach((hl, i) => {
       ctx.fillStyle = css(bergFarbe(hl.stufe));
-      ctx.beginPath();
-      if (hl.links) { ctx.moveTo(0, H); hl.pts.forEach(([x, y]) => ctx.lineTo(x, y)); }
-      else if (hl.rechts) { hl.pts.forEach(([x, y], k) => k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.lineTo(W, H); }
-      else { ctx.moveTo(0, H); hl.pts.forEach(([x, y]) => ctx.lineTo(x, y)); ctx.lineTo(W, H); }
+      ctx.beginPath(); ctx.moveTo(0, H); hl.pts.forEach(([x, y]) => ctx.lineTo(x, y)); ctx.lineTo(W, H);
       ctx.closePath(); ctx.fill();
-      if (hl.denk) portaDetails(hl, t);
       if (i === 0) wolken(1, 1);
     });
-    wolken(2, 2);
+    if (!st.porta) wolken(2, 2);
     clouds = clouds.filter(c => c.ziel > 0 || c.a > .01);
     // Nebel
     if (st.type === "fog" || col.ov > .8 && st.cloud > .95) {
@@ -2240,7 +2311,7 @@ async function suche(q) {
 }
 function ortHinzu(i) {
   const r = suchErg[i]; if (!r) return;
-  const p = { id: "p" + Date.now().toString(36), name: r.name, label: [r.admin2, r.admin1].filter(Boolean).join(", "), lat: r.latitude, lon: r.longitude, station: null };
+  const p = { id: "p" + Date.now().toString(36), name: r.name, label: [r.admin2, r.admin1].filter(Boolean).join(", "), gemeinde: r.admin4 || r.admin3 || "", lat: r.latitude, lon: r.longitude, station: null };
   S.places.push(p); S.curId = p.id; speichere();
   ladeOrt(p).catch(() => { }).then(() => render());
   oeffneEdit(p.id);
@@ -2252,10 +2323,11 @@ async function gpsAktualisieren(still) {
     const lat = +pos.coords.latitude.toFixed(4), lon = +pos.coords.longitude.toFixed(4);
     const moved = S.gps.lat == null || Math.abs(lat - S.gps.lat) + Math.abs(lon - S.gps.lon) > 0.01;
     S.gps.lat = lat; S.gps.lon = lon;
-    if (moved || !S.gps.label) {
+    if (moved || !S.gps.label || S.gps.gemeinde === undefined) {
       try {
         const j = await getJSON(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=14&accept-language=de`, { timeout: 8000 });
         const a = j.address || {}; S.gps.label = a.village || a.town || a.city || a.suburb || a.municipality || "";
+        S.gps.gemeinde = a.city || a.town || a.municipality || "";
       } catch { /* optional */ }
     }
     speichere(); return true;
