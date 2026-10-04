@@ -238,7 +238,9 @@ img.wi{display:block;flex:none;pointer-events:none}
 
 .thr.one{grid-template-columns:1fr}
 .osm-hell{filter:grayscale(.9) brightness(1.04) contrast(.9)}
-.osm-dunkel{filter:invert(1) hue-rotate(180deg) grayscale(.85) brightness(.8) contrast(.92)}
+.osm-farbig{filter:saturate(.7) brightness(1.03)}
+.radar-bild{image-rendering:auto}
+.osm-dunkel{filter:invert(1) hue-rotate(180deg) grayscale(.6) brightness(.95) contrast(.95)}
 
 .rctl{display:flex;align-items:center;gap:12px;margin:12px 4px 4px}
 .playbtn{width:46px;height:46px;flex:0 0 46px;border-radius:50%;border:0;background:var(--ink);color:var(--bg);display:grid;place-items:center}
@@ -1372,7 +1374,8 @@ function renderOrte() {
   </div></section>`;
   // Karte
   h += `<section class="blk"><h2>Radarkarte</h2><div class="plist">
-    <div class="setting"><div>Kartenstil<span>Ohne Schlüssel zeigt die App die OpenStreetMap-Karte. Mit einem kostenlosen Schlüssel von <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noopener">carto.com/basemaps/apikey</a> wird die ruhigere CARTO-Karte geladen.</span></div></div>
+    <div class="setting"><div>Karte unter dem Radar<span>Ohne Schlüssel zeigt die App die OpenStreetMap-Karte. Mit einem kostenlosen Schlüssel von <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noopener">carto.com/basemaps/apikey</a> wird die ruhigere CARTO-Karte geladen.</span></div></div>
+    <div class="thr one"><div><label for="s-karte">Kartenstil</label><select id="s-karte">${Object.entries(KARTENSTILE).map(([k, n]) => `<option value="${k}"${(st.kartenStil || "farbig") === k ? " selected" : ""}>${n}</option>`).join("")}</select></div></div>
     <div class="thr one"><div><label for="t-carto">CARTO-Schlüssel (optional)</label><input type="text" id="t-carto" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="leer lassen für OpenStreetMap" value="${esc(st.cartoKey || "")}"></div></div>
   </div></section>`;
   // App
@@ -1389,11 +1392,12 @@ function renderOrte() {
   qs.addEventListener("input", () => { clearTimeout(to); to = setTimeout(() => suche(qs.value.trim()), 300); });
   const ck = $("#t-carto"); if (ck) ck.addEventListener("change", () => {
     st.cartoKey = ck.value.trim(); speichere();
-    if (RV.map && window.L) { RV.tiles?.remove(); RV.tiles = kachelLayer(window.L).addTo(RV.map); RV.tiles.bringToBack(); }
+    if (RV.map && window.L) { RV.tiles?.remove(); RV.tiles = kachelLayer(window.L, RV.map).addTo(RV.map); }
     toast(st.cartoKey ? "CARTO-Karte wird verwendet." : "OpenStreetMap-Karte wird verwendet.");
   });
   ["boen", "frost", "sicht"].forEach(k => { const i = $("#t-" + k); if (i) i.addEventListener("change", () => { const v = parseFloat(i.value); if (!isNaN(v)) { st.schwellen[k] = v; speichere(); } }); });
   const tp = $("#t-pegel"); if (tp) tp.addEventListener("change", () => { const v = parseFloat(tp.value); st.schwellen.pegel = isNaN(v) ? null : v; speichere(); toast(isNaN(v) ? "Pegel-Alarm aus." : `Pegel-Alarm ab ${v} cm.`); });
+  const sk = $("#s-karte"); if (sk) sk.addEventListener("change", () => { st.kartenStil = sk.value; speichere(); if (RV.map && window.L) { RV.tiles?.remove(); RV.tiles = kachelLayer(window.L, RV.map).addTo(RV.map); } });
   const sp = $("#s-pollen"); if (sp) sp.addEventListener("change", () => { st.pollenRegion = +sp.value; speichere(); });
   const sb = $("#s-bio"); if (sb) sb.addEventListener("change", () => { st.bioZone = sb.value; speichere(); });
 }
@@ -1804,14 +1808,32 @@ function ladeLeaflet() {
   });
   return leafletP;
 }
-function kachelLayer(L) {
-  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+const KARTENSTILE = { farbig: "Farbig (empfohlen)", hell: "Hell und ruhig", dunkel: "Dunkel" };
+function kachelLayer(L, map) {
+  // Ortsnamen und Straßen in eigener Ebene ÜBER dem Radar, damit sie lesbar bleiben
+  if (map && !map.getPane("beschriftung")) { const pn = map.createPane("beschriftung"); pn.style.zIndex = 650; pn.style.pointerEvents = "none"; }
+  const stil = S.settings.kartenStil || "farbig";
   const key = (S.settings.cartoKey || CFG.cartoKey || "").trim();
-  if (key) return L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/${dark ? "dark_all" : "light_all"}/{z}/{x}/{y}.png?key=${encodeURIComponent(key)}`, { maxZoom: 13, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>, Radar: DWD' });
-  // ohne Schlüssel: OpenStreetMap, per Filter ruhig eingefärbt
-  return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 13, className: dark ? "osm-dunkel" : "osm-hell", attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende, Radar: DWD' });
+  const att = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' + (key ? ', &copy; <a href="https://carto.com/attributions">CARTO</a>' : "-Mitwirkende") + ", Radar: DWD";
+  if (key) {
+    const basis = { farbig: "voyager", hell: "light", dunkel: "dark" }[stil];
+    const u = s => `https://basemaps.cartocdn.com/rastertiles/${s}/{z}/{x}/{y}.png?key=${encodeURIComponent(key)}`;
+    const grund = L.tileLayer(u(basis + "_nolabels"), { maxZoom: 13, attribution: att });
+    const schrift = L.tileLayer(u(basis + "_only_labels"), { maxZoom: 13, pane: map ? "beschriftung" : "tilePane" });
+    const grp = L.layerGroup([grund, schrift]);
+    // Rückfall, falls CARTO die getrennten Ebenen nicht liefert: normale Karte mit Beschriftung
+    let fehler = 0, umgestellt = false;
+    const rueckfall = () => {
+      if (umgestellt || ++fehler < 4) return; umgestellt = true;
+      grp.clearLayers(); grp.addLayer(L.tileLayer(u(basis === "voyager" ? "voyager" : basis + "_all"), { maxZoom: 13, attribution: att }));
+    };
+    grund.on("tileerror", rueckfall); schrift.on("tileerror", rueckfall);
+    return grp;
+  }
+  // ohne Schlüssel: OpenStreetMap (Beschriftung ist dort fest in der Karte)
+  return L.layerGroup([L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 13, className: "osm-" + stil, attribution: att })]);
 }
-const RV = { map: null, tiles: null, overlay: null, marker: null, idx: null, bounds: null, i: 0, play: false, timer: 0, key: null, CW: 360, CH: 360 };
+const RV = { map: null, tiles: null, overlay: null, marker: null, idx: null, bounds: null, i: 0, play: false, timer: 0, key: null, CW: 440, CH: 440 };
 function renderRadar() {
   const el = $("#tab-radar"), p = aktOrt();
   if (!el.dataset.built) {
@@ -1819,7 +1841,7 @@ function renderRadar() {
       <div class="rctl"><button class="playbtn" id="rplay" data-a="rplay" aria-label="Abspielen"></button><div class="rtime"><b id="rtime">–</b><span id="rrel"></span></div></div>
       <input type="range" id="rslider" min="0" max="0" value="0" aria-label="Zeitpunkt">
       <div class="rticks"><span>−1 Std</span><span>jetzt</span><span>+2 Std</span></div>
-      <div class="legend"><span>leicht</span><span class="bar" style="background:linear-gradient(90deg,${RADAR_STUFEN.map(s => `rgb(${s[1]})`).join(",")})"></span><span>stark</span></div>
+      <div class="legend"><span>leicht</span><span class="bar" style="background:linear-gradient(90deg,${RADAR_VERLAUF.slice(1).map(s => `rgb(${s[1]})`).join(",")})"></span><span>stark</span></div>
       <section class="blk"><h2>Regen an deinem Ort <small>nächste 2 Std</small></h2><div class="panel" id="rchart"></div></section>`;
     el.dataset.built = "1";
     $("#rslider").addEventListener("input", e => { stopPlay(); zeigeFrame(+e.target.value); });
@@ -1831,17 +1853,17 @@ function renderRadar() {
   $("#rchart").innerHTML = R && R.pid === p.id ? `<div class="nowtext">${nc?.zeigen ? esc(nc.text) : "Kein Niederschlag in den nächsten 2 Stunden"}</div>${nc ? `<div class="nowchart">${nowChart(nc.series)}</div>` : ""}` : `<div class="muted">${S.radarErr ? esc(S.radarErr) : "Radar wird geladen …"}</div>`;
   ladeLeaflet().then(L => {
     if (!RV.map) {
-      RV.map = L.map("map", { zoomControl: false, attributionControl: true }).setView([p.lat, p.lon], 8);
-      RV.tiles = kachelLayer(L).addTo(RV.map);
+      RV.map = L.map("map", { zoomControl: false, attributionControl: true, zoomSnap: 0.5 }).setView([p.lat, p.lon], 8.5);
+      RV.tiles = kachelLayer(L, RV.map).addTo(RV.map);
       L.control.zoom({ position: "topright" }).addTo(RV.map);
     }
     setTimeout(() => RV.map.invalidateSize(), 50);
     if (RV.marker) RV.marker.remove();
     RV.marker = L.circleMarker([p.lat, p.lon], { radius: 6, color: "#fff", weight: 2, fillColor: "#C8102E", fillOpacity: 1 }).addTo(RV.map);
-    if (!R || R.pid !== p.id) { RV.map.setView([p.lat, p.lon], 8); return; }
+    if (!R || R.pid !== p.id) { RV.map.setView([p.lat, p.lon], 8.5); return; }
     const key = R.pid + R.ts;
     if (RV.key !== key) {
-      RV.key = key; RV.map.setView([p.lat, p.lon], 8);
+      RV.key = key; RV.map.setView([p.lat, p.lon], 8.5);
       const km = CFG.radarKm * .97, dLat = km / 111.2, dLon = km / (111.2 * Math.cos(p.lat * Math.PI / 180));
       RV.bounds = { n: p.lat + dLat, s: p.lat - dLat, w: p.lon - dLon, e: p.lon + dLon };
       RV.idx = radarIndex(R, RV.bounds, RV.CW, RV.CH);
@@ -1850,8 +1872,8 @@ function renderRadar() {
       let ni = 0; R.frames.forEach((f, i) => { if (f.t.getTime() <= now + 60e3) ni = i; });
       $("#rslider").max = R.frames.length - 1;
       if (RV.overlay) RV.overlay.remove();
-      RV.overlay = L.imageOverlay(frameUrl(ni), [[RV.bounds.s, RV.bounds.w], [RV.bounds.n, RV.bounds.e]], { opacity: .82, interactive: false }).addTo(RV.map);
-      zeigeFrame(ni);
+      RV.overlay = L.imageOverlay(frameUrl(ni), [[RV.bounds.s, RV.bounds.w], [RV.bounds.n, RV.bounds.e]], { opacity: .9, interactive: false, className: "radar-bild" }).addTo(RV.map);
+      zeigeFrame(ni); radarVorrechnen();
     }
   }).catch(e => { $("#map").innerHTML = `<div class="radar-msg">${esc(e.message)} Prüfe die Internetverbindung.</div>`; });
 }
@@ -1867,18 +1889,55 @@ function radarIndex(R, b, CW, CH) {
   }
   return idx;
 }
+/* Radar weich darstellen: Niederschlag als Feld glätten, dann stufenlos einfärben
+   und an den Rändern auslaufen lassen – wirkt wie Wolken statt wie Pixel. */
+const RADAR_VERLAUF = [[0.05, [170, 214, 245], 0], [0.3, [140, 198, 240], .55], [0.8, [86, 160, 228], .78], [2, [40, 110, 200], .86], [5, [250, 200, 20], .9], [10, [244, 140, 10], .92], [20, [226, 48, 36], .94], [50, [176, 24, 140], .95]];
+function radarFarbeWeich(mm) {
+  const V = RADAR_VERLAUF;
+  if (mm < V[0][0]) return null;
+  if (mm >= V[V.length - 1][0]) return [...V[V.length - 1][1], V[V.length - 1][2]];
+  let k = 1; while (mm >= V[k][0]) k++;
+  const [a0, c0, o0] = V[k - 1], [a1, c1, o1] = V[k];
+  const t = clamp((Math.log(mm) - Math.log(a0)) / (Math.log(a1) - Math.log(a0)), 0, 1), s = t * t * (3 - 2 * t);
+  return [lerp(c0[0], c1[0], s), lerp(c0[1], c1[1], s), lerp(c0[2], c1[2], s), lerp(o0, o1, s)];
+}
+function boxBlur(src, tmp, w, h, r) {
+  const n = 2 * r + 1;
+  for (let y = 0; y < h; y++) {
+    const o = y * w; let acc = 0;
+    for (let x = -r; x <= r; x++) acc += src[o + clamp(x, 0, w - 1)];
+    for (let x = 0; x < w; x++) { tmp[o + x] = acc / n; acc += src[o + Math.min(w - 1, x + r + 1)] - src[o + Math.max(0, x - r)]; }
+  }
+  for (let x = 0; x < w; x++) {
+    let acc = 0;
+    for (let y = -r; y <= r; y++) acc += tmp[clamp(y, 0, h - 1) * w + x];
+    for (let y = 0; y < h; y++) { src[y * w + x] = acc / n; acc += tmp[Math.min(h - 1, y + r + 1) * w + x] - tmp[Math.max(0, y - r) * w + x]; }
+  }
+}
 function frameUrl(i) {
   const R = S.radar; if (R.urls[i]) return R.urls[i];
-  const c = document.createElement("canvas"); c.width = RV.CW; c.height = RV.CH;
-  const x = c.getContext("2d"), img = x.createImageData(RV.CW, RV.CH), d = R.frames[i].d;
-  for (let k = 0; k < RV.idx.length; k++) {
-    const ix = RV.idx[k]; if (ix < 0) continue;
-    const v = d[ix]; if (!v || v > 30000) continue;
-    const f = radarFarbe(v * 0.12); if (!f) continue;
-    img.data[k * 4] = f[0]; img.data[k * 4 + 1] = f[1]; img.data[k * 4 + 2] = f[2]; img.data[k * 4 + 3] = 235;
+  const w = RV.CW, hh = RV.CH, d = R.frames[i].d, N = w * hh;
+  // Feld im log-Raum glätten: Kerne bleiben kräftig, Ränder laufen weich aus
+  const f = new Float32Array(N), tmp = new Float32Array(N);
+  for (let k = 0; k < N; k++) { const ix = RV.idx[k]; if (ix < 0) continue; const v = d[ix]; if (v && v <= 30000) f[k] = Math.log1p(v * 0.12 * 4); }
+  boxBlur(f, tmp, w, hh, 3); boxBlur(f, tmp, w, hh, 2); boxBlur(f, tmp, w, hh, 2);
+  const c = document.createElement("canvas"); c.width = w; c.height = hh;
+  const x = c.getContext("2d"), img = x.createImageData(w, hh), px = img.data;
+  for (let k = 0; k < N; k++) {
+    if (f[k] <= 0.01) continue;
+    const col = radarFarbeWeich(Math.expm1(f[k]) / 4); if (!col) continue;
+    px[k * 4] = col[0]; px[k * 4 + 1] = col[1]; px[k * 4 + 2] = col[2]; px[k * 4 + 3] = Math.round(col[3] * 255);
   }
   x.putImageData(img, 0, 0);
   return (R.urls[i] = c.toDataURL());
+}
+function radarVorrechnen() {
+  // übrige Bilder in Leerlaufzeiten vorbereiten, damit das Abspielen flüssig läuft
+  const R = S.radar; if (!R || !RV.idx) return;
+  const offen = R.frames.map((_, i) => i).filter(i => !R.urls[i]);
+  const spaeter = window.requestIdleCallback || (fn => setTimeout(fn, 30));
+  const weiter = () => { const i = offen.shift(); if (i == null || S.radar !== R) return; frameUrl(i); spaeter(weiter); };
+  spaeter(weiter);
 }
 function zeigeFrame(i) {
   const R = S.radar; if (!R || !RV.overlay) return;
@@ -2152,7 +2211,7 @@ function oeffneEdit(id) {
   </div>`;
   ladeLeaflet().then(L => {
     ED.map = L.map("emap", { zoomControl: false }).setView([ED.lat, ED.lon], 12);
-    kachelLayer(L).addTo(ED.map);
+    kachelLayer(L, ED.map).addTo(ED.map);
     ED.marker = L.marker([ED.lat, ED.lon], { draggable: true, icon: L.divIcon({ className: "", html: `<div style="width:22px;height:22px;border-radius:50%;background:#C8102E;border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.35)"></div>`, iconSize: [22, 22], iconAnchor: [11, 11] }) }).addTo(ED.map);
     ED.marker.on("dragend", () => { const ll = ED.marker.getLatLng(); ED.lat = +ll.lat.toFixed(4); ED.lon = +ll.lng.toFixed(4); ladeStationen(); });
     ED.map.on("click", e => { ED.marker.setLatLng(e.latlng); ED.lat = +e.latlng.lat.toFixed(4); ED.lon = +e.latlng.lng.toFixed(4); ladeStationen(); });
