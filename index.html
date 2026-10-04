@@ -407,7 +407,7 @@ input[type=text],input[type=search],input[type=number],input[type=date],select{f
    Konfiguration – hier anpassen
    ===================================================================== */
 const CFG = {
-  start: { name: "Porta Westfalica", label: "Feuer- und Rettungswache", lat: 52.2260, lon: 8.9180 },
+  start: { name: "Porta Westfalica", label: "", lat: 52.2333, lon: 8.9167, station: "00769" },   // Station 00769 = DWD Bückeburg
   pegel: { station: "PORTA", name: "Porta", gewaesser: "Weser", wtRadiusKm: 80 },   // Wassertemperatur: eigene Messung oder nächste Station im Umkreis
   schwellen: { boen: 60, frost: 0, sicht: 1000, pegel: null },   // km/h, °C, m, cm (Pegel: null = aus)
   refreshMin: 10,
@@ -606,7 +606,7 @@ function tempFarbe(t) {
    Zustand
    ===================================================================== */
 const S = {
-  places: store.get("places", null) || [{ id: "p" + Date.now().toString(36), ...CFG.start, station: null }],
+  places: store.get("places", null) || [{ id: "p" + Date.now().toString(36), ...CFG.start }],
   gps: store.get("gps", { on: false, lat: null, lon: null, label: "" }),
   curId: store.get("cur", null),
   settings: Object.assign({ extras: true, notify: false, gesundheit: true, pollenRegion: 42, pollenArten: ["Hasel", "Erle", "Esche", "Birke", "Graeser", "Roggen", "Beifuss", "Ambrosia"], bioZone: "C", schwellen: { ...CFG.schwellen } }, store.get("settings", {})),
@@ -846,6 +846,7 @@ function render() {
   renderBadge();
   Sky.active(S.tab === "wetter");
 }
+const istPorta = p => /porta westfalica/i.test(`${p.name} ${p.label || ""}`) || kmZwischen(p.lat, p.lon, 52.2333, 8.9167) < 7;
 function renderHero(p, d) {
   const orte = alleOrte();
   $("#h-place").textContent = p.name;
@@ -873,8 +874,8 @@ function renderHero(p, d) {
     if (nc) { precip = nc.jetzt; if (precip >= 0.1 && !["rain", "snow", "sleet", "thunder"].includes(typ)) typ = (c?.temp ?? 5) <= 0.5 ? "snow" : "rain"; }
     if (["rain", "snow", "sleet", "thunder"].includes(typ) && precip < 0.2) precip = 0.4;
     const upcoming = nc && !(nc.jetzt >= 0.1) && nc.start != null ? clamp((60 - nc.start) / 60, 0, 1) : 0;
-    Sky.set({ lat: p.lat, lon: p.lon, cloud: (c?.cloud ?? 40) / 100, precip, type: typ, wind: c?.wind ?? 10, upcoming });
-  } else Sky.set({ lat: p.lat, lon: p.lon });
+    Sky.set({ lat: p.lat, lon: p.lon, cloud: (c?.cloud ?? 40) / 100, precip, type: typ, wind: c?.wind ?? 10, upcoming, porta: istPorta(p) });
+  } else Sky.set({ lat: p.lat, lon: p.lon, porta: istPorta(p) });
 }
 function renderWetter() {
   const p = aktOrt(), d = S.daten[p.id];
@@ -1444,7 +1445,8 @@ const Sky = (() => {
   const mix = (a, b, t) => a.map((v, i) => lerp(v, b[i], t));
   const css = (c, a = 1) => `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${a})`;
   let cv, ctx, W = 0, H = 0, dpr = 1, raf = 0, on = true, last = 0, reduced = false;
-  const st = { lat: 52.2, lon: 8.9, cloud: .35, precip: 0, type: null, wind: 10, upcoming: 0 };
+  const st = { lat: 52.2, lon: 8.9, cloud: .35, precip: 0, type: null, wind: 10, upcoming: 0, porta: false };
+  let erst = true, hatteDaten = false; // erste echte Wetterdaten: sofort zeigen statt einblenden
   let col = null, ziel = null, astro = null, astroT = 0, spriteT = 0;
   let clouds = [], drops = [], flakes = [], stars = [], hills = [], fogB = [];
   let regen = 0, schnee = 0, regenZiel = 0, schneeZiel = 0;
@@ -1470,9 +1472,12 @@ const Sky = (() => {
   function set(o) {
     const vorher = JSON.stringify(st); Object.assign(st, o);
     if (JSON.stringify(st) === vorher || !W) return;
+    const portaNeu = st.porta !== JSON.parse(vorher).porta;
     ziel = farben();
-    if (!col) col = ziel;
-    baueWolken(false); bauePartikel();
+    const ersteDaten = "cloud" in o && !hatteDaten; if ("cloud" in o) hatteDaten = true;
+    if (erst || ersteDaten || !col) { col = ziel; erst = false; baueWolken(true); } else baueWolken(false);
+    if (portaNeu) baueStatisch();
+    bauePartikel();
     if (reduced) { col = ziel; draw(0); }
   }
 
@@ -1517,20 +1522,77 @@ const Sky = (() => {
       const warm = r();
       stars.push({ x: r() * W, y: Math.pow(r(), 1.3) * H * .78, rr: (Math.pow(r(), 3) * 1.5 + .35) * dpr, ph: r() * 6.28, sp: .6 + r() * 1.8, c: warm < .15 ? "255,226,196" : warm > .88 ? "205,220,255" : "255,255,255" });
     }
-    // Hügel: drei Ketten, die vorderste mit der Porta-Lücke
-    hills = [];
-    const ketten = [[.80, .05, .66, 3.1, .35], [.865, .07, .60, 1.4, .55], [.935, .055, .57, 4.2, .8]];
-    ketten.forEach(([base, amp, gap, ph, tiefe]) => {
+    hills = st.porta ? portaBerge() : standardBerge();
+    fogB = []; for (let i = 0; i < 5; i++) fogB.push({ y: .42 + i * .11 + r() * .04, sp: (.15 + r() * .35) * dpr, off: r() * W, h: (40 + r() * 50) * dpr });
+  }
+  function standardBerge() {
+    const out = [];
+    [[.74, .05, 3.1, 0], [.80, .06, 1.4, 1], [.87, .05, 4.2, 2]].forEach(([base, amp, ph, stufe]) => {
       const pts = [];
       for (let x = 0; x <= 80; x++) {
         const u = x / 80;
-        let y = base - amp * (.55 + .22 * Math.sin(u * 6.3 + ph) + .14 * Math.sin(u * 15.1 + ph * 2) + .07 * Math.sin(u * 37 + ph));
-        y += amp * 1.1 * Math.exp(-Math.pow((u - gap) / .06, 2));
-        pts.push([u * W, y * H]);
+        pts.push([u * W, (base - amp * (.55 + .22 * Math.sin(u * 6.3 + ph) + .14 * Math.sin(u * 15.1 + ph * 2) + .07 * Math.sin(u * 37 + ph))) * H]);
       }
-      hills.push({ pts, tiefe });
+      out.push({ pts, stufe });
     });
-    fogB = []; for (let i = 0; i < 5; i++) fogB.push({ y: .42 + i * .11 + r() * .04, sp: (.15 + r() * .35) * dpr, off: r() * W, h: (40 + r() * 50) * dpr });
+    return out;
+  }
+  // Porta Westfalica von Süden: links Wiehengebirge mit Wittekindsberg und Kaiser-Wilhelm-Denkmal,
+  // rechts Wesergebirge mit Jakobsberg und Fernmeldeturm, dazwischen die Weser in der Pforte.
+  function portaBerge() {
+    const ridge = (von, bis, f) => { const pts = []; for (let x = 0; x <= 70; x++) { const u = von + (bis - von) * x / 70; pts.push([u * W, f(u) * H]); } return pts; };
+    const welle = (u, a) => a * (Math.sin(u * 23 + 1.3) * .5 + Math.sin(u * 51 + .4) * .3);
+    const fern = ridge(0, 1, u => .80 - .018 * Math.sin(u * 5.2 + 1) - welle(u, .005));
+    // Wiehengebirge: sanft ansteigend bis zum Wittekindsberg (u≈.70), dann steil hinab in die Pforte
+    const links = u => u < .70 ? .705 - .055 * Math.pow(u / .70, 1.3) - welle(u, .007) : .65 + .225 * Math.pow(Math.min(1, (u - .70) / .10), 1.6);
+    // Wesergebirge: steil aus der Pforte hinauf zum Jakobsberg (u≈.92), dann flacher nach Osten
+    const rechts = u => u < .92 ? .875 - .22 * Math.pow(Math.max(0, (u - .84) / .08), .75) : .655 + .02 * (u - .92) / .08;
+    return [
+      { pts: fern, stufe: 0 },
+      { pts: [...ridge(0, .80, links), [.80 * W, H]], stufe: 2, links: true },
+      { pts: [[.84 * W, H], ...ridge(.84, 1, rechts)], stufe: 2, rechts: true, denk: [.735, links(.735)], turm: [.92, rechts(.92)], fluss: [.80, .84], wy: .875 }
+    ];
+  }
+  function bergFarbe(stufe) {
+    // helle, dunstige Berge: Horizontfarbe mit leichtem Grün-Grau, nach vorn etwas kräftiger
+    let c = mix(col.hor, col.mid, .3);
+    c = mix(c, mix([70, 92, 88], [128, 152, 140], col.day), .34 + stufe * .1);
+    c = mix(c, [18, 28, 32], .1 + stufe * .11);
+    const boden = [28 + stufe * 5, 34 + stufe * 5, 48 + stufe * 5];
+    return c.map((v, i) => Math.max(v, boden[i]));
+  }
+  function portaDetails(hl, t) {
+    const nacht = clamp((-astro.sun.alt - 2) / 6, 0, 1), fc = bergFarbe(2);
+    // Weser in der Pforte, spiegelt den Himmel
+    const [f0, f1] = hl.fluss, wy = hl.wy * H;
+    const wg = ctx.createLinearGradient(0, wy, 0, H); wg.addColorStop(0, css(mix(col.hor, [255, 255, 255], .15), .9)); wg.addColorStop(1, css(mix(col.mid, col.zen, .4), .9));
+    ctx.fillStyle = wg; ctx.beginPath(); ctx.moveTo(f0 * W, wy); ctx.lineTo(f1 * W, wy); ctx.lineTo((f1 + .05) * W, H); ctx.lineTo((f0 - .05) * W, H); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = css([255, 255, 255], .18 + .1 * Math.sin(t * 1.3)); ctx.lineWidth = 1 * dpr;
+    for (let k = 0; k < 3; k++) { const yy = wy + (k + 1) * (H - wy) / 4, sp = (f1 - f0) * W * (.3 + k * .15); ctx.beginPath(); ctx.moveTo((f0 + f1) / 2 * W - sp / 2 + Math.sin(t + k) * 3 * dpr, yy); ctx.lineTo((f0 + f1) / 2 * W + sp / 2 + Math.sin(t + k) * 3 * dpr, yy); ctx.stroke(); }
+    // Kaiser-Wilhelm-Denkmal: Terrasse, Baldachin mit Kuppel
+    const [dx, dyf] = hl.denk, x = dx * W, y = dyf * H, s = W / 390;
+    ctx.fillStyle = css(mix(fc, [0, 0, 0], .12));
+    ctx.fillRect(x - 15 * s, y - 4 * s, 30 * s, 6 * s);           // Ringterrasse
+    ctx.fillRect(x - 8 * s, y - 13 * s, 16 * s, 9 * s);             // Baldachin
+    ctx.beginPath(); ctx.ellipse(x, y - 13 * s, 7.5 * s, 7 * s, 0, Math.PI, 0); ctx.fill();   // Kuppel
+    ctx.fillRect(x - 1 * s, y - 23 * s, 2 * s, 4 * s);              // Laterne
+    if (nacht > .05) { // angestrahlt
+      const g = ctx.createRadialGradient(x, y - 10 * s, 0, x, y - 10 * s, 26 * s);
+      g.addColorStop(0, `rgba(255,214,150,${.5 * nacht})`); g.addColorStop(1, "rgba(255,214,150,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - 10 * s, 26 * s, 0, 6.283); ctx.fill();
+      ctx.fillStyle = `rgba(255,226,180,${.85 * nacht})`;
+      ctx.fillRect(x - 8 * s, y - 13 * s, 16 * s, 9 * s); ctx.beginPath(); ctx.ellipse(x, y - 13 * s, 7.5 * s, 7 * s, 0, Math.PI, 0); ctx.fill();
+    }
+    // Fernmeldeturm auf dem Jakobsberg
+    const [tx, tyf] = hl.turm, X = tx * W, Y = tyf * H;
+    ctx.fillStyle = css(mix(fc, [0, 0, 0], .12));
+    ctx.beginPath(); ctx.moveTo(X - 3 * s, Y + 2 * s); ctx.lineTo(X - 1.6 * s, Y - 40 * s); ctx.lineTo(X + 1.6 * s, Y - 40 * s); ctx.lineTo(X + 3 * s, Y + 2 * s); ctx.fill();
+    ctx.fillRect(X - 4.5 * s, Y - 36 * s, 9 * s, 5 * s);           // Betriebsgeschoss
+    ctx.fillRect(X - .7 * s, Y - 58 * s, 1.4 * s, 18 * s);         // Antenne
+    if (nacht > .05 && Math.sin(t * 2.4) > .2) { // Flugbefeuerung
+      ctx.fillStyle = `rgba(255,60,50,${nacht})`; ctx.beginPath(); ctx.arc(X, Y - 58 * s, 1.8 * s, 0, 6.283); ctx.fill();
+      ctx.beginPath(); ctx.arc(X, Y - 36 * s, 1.4 * s, 0, 6.283); ctx.fill();
+    }
   }
   function wolkenSprite(c) {
     const r = rand(c.seed);
@@ -1602,7 +1664,7 @@ const Sky = (() => {
 
   /* ---------- Zeichnen ---------- */
   // Sonne und Mond im oberen rechten Himmelsbereich: frei von Ortsname und Temperatur
-  function himmelsPos(az, alt) { return [W * (.56 + .34 * clamp((az + 120) / 240, 0, 1)), H * (.42 - .26 * clamp(alt / 45, 0, 1)) + (alt < 0 ? H * .04 * clamp(-alt / 6, 0, 1) : 0)]; }
+  function himmelsPos(az, alt) { return [W * (.54 + .32 * clamp((az + 120) / 240, 0, 1)), H * (.31 - .17 * clamp(alt / 45, 0, 1)) + (alt < 0 ? H * .03 * clamp(-alt / 6, 0, 1) : 0)]; }
   function moonDraw(x, y, r, ph, alpha) {
     ctx.save(); ctx.translate(x, y); ctx.globalAlpha = alpha;
     const g = ctx.createRadialGradient(0, 0, r * .8, 0, 0, r * 5); g.addColorStop(0, "rgba(235,232,215,.22)"); g.addColorStop(1, "rgba(235,232,215,0)");
@@ -1719,9 +1781,13 @@ const Sky = (() => {
     wolken(0, 0);
     // Hügel mit Dunst
     hills.forEach((hl, i) => {
-      const fern = mix(col.hor, mix(col.zen, [8, 11, 16], .55), .35 + hl.tiefe * .5);
-      ctx.fillStyle = css(mix(fern, [14, 18, 26], hl.tiefe * .38 * (1 - col.day * .35)));
-      ctx.beginPath(); ctx.moveTo(0, H); hl.pts.forEach(([x, y]) => ctx.lineTo(x, y)); ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = css(bergFarbe(hl.stufe));
+      ctx.beginPath();
+      if (hl.links) { ctx.moveTo(0, H); hl.pts.forEach(([x, y]) => ctx.lineTo(x, y)); }
+      else if (hl.rechts) { hl.pts.forEach(([x, y], k) => k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.lineTo(W, H); }
+      else { ctx.moveTo(0, H); hl.pts.forEach(([x, y]) => ctx.lineTo(x, y)); ctx.lineTo(W, H); }
+      ctx.closePath(); ctx.fill();
+      if (hl.denk) portaDetails(hl, t);
       if (i === 0) wolken(1, 1);
     });
     wolken(2, 2);
@@ -2374,6 +2440,14 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
 }
 if (!S.curId || !alleOrte().some(p => p.id === S.curId)) S.curId = alleOrte()[0].id;
 Sky.init($("#skycanvas"));
+// Umstellung (1.2): alter Standardort „Feuer- und Rettungswache" wird zur Stadt Porta Westfalica mit Station Bückeburg
+if (!S.settings.migr12) {
+  S.places.forEach(o => {
+    if (o.label === "Feuer- und Rettungswache" && Math.abs(o.lat - 52.226) < .003 && Math.abs(o.lon - 8.918) < .003)
+      Object.assign(o, { label: "", lat: CFG.start.lat, lon: CFG.start.lon, station: o.station || CFG.start.station });
+  });
+  S.settings.migr12 = true; speichere();
+}
 ausCacheLaden();
 render();
 aktualisiere();
