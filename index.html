@@ -1642,30 +1642,71 @@ const Sky = (() => {
       const a = Math.PI * (.12 + .76 * k / 10), fx = x - Math.cos(a) * 33 * s, fy = ty + Math.sin(a) * 7.4 * s + 1.2 * s;
       ctx.fillStyle = fenster; ctx.beginPath(); ctx.moveTo(fx - 1.3 * s, fy + 2.6 * s); ctx.lineTo(fx - 1.3 * s, fy + .6 * s); ctx.arc(fx, fy + .6 * s, 1.3 * s, Math.PI, 0); ctx.lineTo(fx + 1.3 * s, fy + 2.6 * s); ctx.fill();
     }
-    // Sockel mit Treppen
-    F(schatten); ctx.fillRect(x - 13 * s, y - 9 * s, 26 * s, 8 * s);
-    F(stein); ctx.fillRect(x - 13 * s, y - 10.5 * s, 26 * s, 2 * s);
-    F(hell); ctx.beginPath(); ctx.moveTo(x - 13 * s, y - 2 * s); ctx.lineTo(x - 21 * s, y - 1 * s); ctx.lineTo(x - 16 * s, y - 8 * s); ctx.lineTo(x - 13 * s, y - 8 * s); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(x + 13 * s, y - 2 * s); ctx.lineTo(x + 21 * s, y - 1 * s); ctx.lineTo(x + 16 * s, y - 8 * s); ctx.lineTo(x + 13 * s, y - 8 * s); ctx.fill();
-    // Baldachin: Seitenfläche, Front mit Pfeilern und Rundbogen
-    F(schatten); ctx.fillRect(x + 9 * s, y - 39 * s, 4 * s, 29 * s);
-    F(stein); ctx.fillRect(x - 10 * s, y - 39 * s, 19 * s, 29 * s);
-    ctx.fillStyle = css(lit ? [255, 232, 190] : mix(col.mid, col.hor, .5));
-    ctx.beginPath(); ctx.moveTo(x - 5.2 * s, y - 10.5 * s); ctx.lineTo(x - 5.2 * s, y - 27 * s); ctx.arc(x - .5 * s, y - 27 * s, 4.7 * s, Math.PI, 0); ctx.lineTo(x + 4.2 * s, y - 10.5 * s); ctx.fill();
-    F(schatten); ctx.fillRect(x - 1.6 * s, y - 24 * s, 2.2 * s, 11 * s); ctx.beginPath(); ctx.arc(x - .5 * s, y - 25 * s, 1.5 * s, 0, 6.283); ctx.fill(); // Statue
-    F(schatten); ctx.fillRect(x + 10 * s, y - 31 * s, 2 * s, 9 * s);                     // seitlicher Bogen
-    // Gebälk mit Ecktürmchen
-    F(hell); ctx.fillRect(x - 11 * s, y - 44 * s, 24 * s, 5 * s);
-    F(schatten); ctx.fillRect(x - 11 * s, y - 40 * s, 24 * s, 1.2 * s);
-    F(stein); [-11, -2, 10].forEach(o => { ctx.fillRect(x + o * s, y - 47 * s, 3 * s, 3 * s); ctx.beginPath(); ctx.moveTo(x + o * s, y - 47 * s); ctx.lineTo(x + (o + 1.5) * s, y - 50 * s); ctx.lineTo(x + (o + 3) * s, y - 47 * s); ctx.fill(); });
-    // Glockendach
-    const dach = lit ? mix([96, 84, 74], [200, 160, 110], nacht * .5) : farbeLand([92, 82, 76], dunst);
-    ctx.fillStyle = css(dach); ctx.beginPath(); ctx.moveTo(x - 9.5 * s, y - 44 * s);
-    ctx.quadraticCurveTo(x - 9 * s, y - 55 * s, x + 1 * s, y - 60 * s); ctx.quadraticCurveTo(x + 11 * s, y - 55 * s, x + 11.5 * s, y - 44 * s); ctx.fill();
-    // Laterne mit Krone
-    F(stein); ctx.fillRect(x - .9 * s, y - 64 * s, 3.8 * s, 5 * s);
-    ctx.beginPath(); ctx.arc(x + 1 * s, y - 65.5 * s, 2 * s, 0, 6.283); ctx.fill();
-    ctx.fillRect(x + .5 * s, y - 70 * s, 1 * s, 3.5 * s);
+    // ---- Denkmal im Detail (Ansicht schräg von vorn, nach Foto) ----
+    const seite = mix(stein, schatten, .55), fuge = mix(stein, [30, 24, 18], .5);
+    const P = (pts, c) => { ctx.fillStyle = css(c); ctx.beginPath(); pts.forEach(([a, b], i) => i ? ctx.lineTo(x + a * s, y + b * s) : ctx.moveTo(x + a * s, y + b * s)); ctx.closePath(); ctx.fill(); };
+    const L = (pts, c, w = .5) => { ctx.strokeStyle = css(c); ctx.lineWidth = w * s; ctx.beginPath(); pts.forEach(([a, b], i) => i ? ctx.lineTo(x + a * s, y + b * s) : ctx.moveTo(x + a * s, y + b * s)); ctx.stroke(); };
+    const durchblick = lit ? [255, 232, 190] : mix(col.mid, col.hor, .45);
+    const bogen = (cx, sy, hw, unten, c) => { ctx.fillStyle = css(c); ctx.beginPath(); ctx.moveTo(x + (cx - hw) * s, y + unten * s); ctx.lineTo(x + (cx - hw) * s, y + sy * s); ctx.arc(x + cx * s, y + sy * s, hw * s, Math.PI, 0); ctx.lineTo(x + (cx + hw) * s, y + unten * s); ctx.closePath(); ctx.fill(); };
+    // Denkmal mittig auf die Ringterrasse stellen
+    ctx.save(); ctx.translate(0, 10 * s);
+    // zwei flache Stufen
+    P([[-13.5, -9], [9.5, -9], [10.5, -6.6], [-14.5, -6.6]], hell);
+    L([[-14, -7.8], [10, -7.8]], mix(hell, fuge, .45), .4);
+    // Sockel
+    P([[-13, -12.5], [9, -12.5], [9, -9], [-13, -9]], stein);
+    P([[9, -12.5], [15, -15], [15, -11.5], [9, -9]], seite);
+    // Baldachin: Front und rechte Seite
+    P([[-13, -40], [9, -40], [9, -12.5], [-13, -12.5]], stein);
+    P([[9, -40], [15, -42.5], [15, -15], [9, -12.5]], seite);
+    // Rundbogen vorn mit Durchblick und Archivolte
+    bogen(-2, -29, 6, -12.5, durchblick);
+    ctx.strokeStyle = css(fuge); ctx.lineWidth = .6 * s; ctx.beginPath(); ctx.arc(x - 2 * s, y - 29 * s, 7.4 * s, Math.PI, 0); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x - 2 * s, y - 29 * s, 6.6 * s, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke();
+    // seitlicher Bogen (verkürzt)
+    ctx.save(); ctx.translate(x + 12 * s, y - 13.8 * s); ctx.transform(1, -.42, 0, 1, 0, 0);
+    ctx.fillStyle = css(mix(durchblick, seite, .35)); ctx.beginPath(); ctx.moveTo(-1.8 * s, 0); ctx.lineTo(-1.8 * s, -15 * s); ctx.arc(0, -15 * s, 1.8 * s, Math.PI, 0); ctx.lineTo(1.8 * s, 0); ctx.closePath(); ctx.fill(); ctx.restore();
+    // gebündelte Säulen an den Pfeilern, Kapitelle, Sockelband
+    [-12.2, -10.8, -9.4, 5.4, 6.8, 8.2].forEach(a => L([[a, -38.5], [a, -13]], fuge, .35));
+    [[-13, -8], [4, 9]].forEach(([a, b]) => { P([[a, -30], [b, -30], [b, -28.6], [a, -28.6]], hell); P([[a, -15], [b, -15], [b, -13.6], [a, -13.6]], hell); });
+    P([[9, -30], [15, -32.5], [15, -31.1], [9, -28.6]], mix(seite, hell, .3));
+    // Statue auf Postament
+    P([[-4.4, -15.5], [.4, -15.5], [.4, -12.5], [-4.4, -12.5]], schatten);          // Postament
+    P([[-4.1, -16.2], [.1, -16.2], [.1, -15.4], [-4.1, -15.4]], mix(schatten, hell, .3));
+    P([[-3.4, -16.2], [-.6, -16.2], [-.9, -22.5], [-3.1, -22.5]], schatten);          // Mantel
+    P([[-3.5, -22], [-.5, -22], [-.9, -24.6], [-3.1, -24.6]], schatten);              // Schultern
+    P([[-1, -23.8], [1.9, -21.6], [1.6, -21], [-1.1, -22.6]], schatten);              // ausgestreckter Arm
+    ctx.fillStyle = css(schatten); ctx.beginPath(); ctx.arc(x - 2 * s, y - 25.7 * s, 1 * s, 0, 6.283); ctx.fill();
+    // Gebälk mit Bogenfries
+    P([[-14, -46.5], [10, -46.5], [10, -40], [-14, -40]], hell);
+    P([[10, -46.5], [16, -49], [16, -42.5], [10, -40]], mix(seite, hell, .25));
+    L([[-14, -46.5], [10, -46.5], [16, -49]], fuge, .6); L([[-14, -40.2], [10, -40.2], [16, -42.7]], fuge, .5);
+    for (let k = 0; k < 7; k++) bogen(-12 + k * 3.4, -43.6, .9, -41.2, fuge);
+    // Ecktürmchen mit Kuppel und Spitze
+    const tuermchen = (cx, dy, c) => {
+      P([[cx - 2, -52 + dy], [cx + 2, -52 + dy], [cx + 2, -46.5 + dy], [cx - 2, -46.5 + dy]], c);
+      bogen(cx, -50 + dy, .6, -47.5 + dy, fuge);
+      ctx.fillStyle = css(c); ctx.beginPath(); ctx.ellipse(x + cx * s, y + (-52 + dy) * s, 2.2 * s, 2.4 * s, 0, Math.PI, 0); ctx.fill();
+      L([[cx, -54.4 + dy], [cx, -56.5 + dy]], c, .7);
+    };
+    // Dach: Tambour mit kleinen Fenstern, gestufte Kuppel mit Rippen
+    P([[-10.5, -52], [9.5, -52], [9.5, -46.5], [-10.5, -46.5]], stein);
+    P([[9.5, -52], [13.5, -53.6], [13.5, -48.1], [9.5, -46.5]], seite);
+    [-6.5, -1.5, 3.5].forEach(a => bogen(a, -50, .8, -47.6, fuge));
+    const dach = lit ? mix([104, 92, 80], [205, 165, 115], nacht * .5) : farbeLand([118, 104, 92], dunst);
+    ctx.fillStyle = css(dach); ctx.beginPath(); ctx.moveTo(x - 10 * s, y - 52 * s);
+    ctx.quadraticCurveTo(x - 9 * s, y - 60 * s, x + .5 * s, y - 64.5 * s); ctx.quadraticCurveTo(x + 11 * s, y - 60.5 * s, x + 13 * s, y - 53.4 * s); ctx.closePath(); ctx.fill();
+    const rippe = mix(dach, [20, 18, 16], .35);
+    [[-6, -52], [-1.5, -52], [3.5, -52.4], [8.5, -53]].forEach(([a, b]) => L([[a, b], [a * .35 + .3, -61.5], [.5, -64.3]], rippe, .4));
+    L([[-9.6, -56], [12, -56.4]], rippe, .35);
+    tuermchen(-12, 0, stein); tuermchen(8, 0, stein); tuermchen(14.6, -2.5, seite);
+    // Laterne mit Säulchen, Kuppel, Kugel und Krone
+    P([[-1.6, -68.5], [2.6, -68.5], [2.6, -64], [-1.6, -64]], stein);
+    L([[-.2, -68], [-.2, -64.4]], fuge, .4); L([[1.2, -68], [1.2, -64.4]], fuge, .4);
+    ctx.fillStyle = css(dach); ctx.beginPath(); ctx.ellipse(x + .5 * s, y - 68.5 * s, 2.4 * s, 2 * s, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = css(stein); ctx.beginPath(); ctx.arc(x + .5 * s, y - 71.4 * s, 1.1 * s, 0, 6.283); ctx.fill();
+    P([[-.4, -72.3], [1.4, -72.3], [1.8, -74], [.5, -73.2], [-.8, -74]], stein);
+    ctx.restore();
     // Bäume vor der Terrasse: das Denkmal sitzt im Wald
     const baum = farbeLand([70, 104, 54], .18), baumH = farbeLand([96, 132, 70], .18);
     [[-45, 9, 7.5], [-35, 15.5, 6.5], [-23, 18.5, 7], [-10, 19.5, 6.2], [4, 19.8, 7], [18, 18.6, 6.4], [31, 16, 7], [43, 10, 7.5], [-52, 4, 6.5], [51, 4, 6.5], [-28, 22, 6], [12, 23, 6]].forEach(([dx, dy, rr], k) => {
