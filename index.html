@@ -197,6 +197,58 @@ a{color:var(--rain)}
 .daydet .mg-scroll{margin:0 -4px}
 img.wi{display:block;flex:none;pointer-events:none}
 .hero-btns{display:flex;gap:8px}
+/* ---------- Weser & Wald ---------- */
+.gk.ww::after{content:"";position:absolute;left:0;right:0;bottom:0;pointer-events:none}
+.gk.wasser::after{height:34%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40' preserveAspectRatio='none'%3E%3Cpath d='M0 16 Q15 6 30 16 T60 16 T90 16 T120 16 V40 H0Z' fill='%232F80ED' fill-opacity='.16'/%3E%3Cpath d='M0 26 Q15 17 30 26 T60 26 T90 26 T120 26 V40 H0Z' fill='%232F80ED' fill-opacity='.2'/%3E%3C/svg%3E") repeat-x 0 100%/120px 100%;animation:wellen 9s linear infinite}
+.gk.feuer::after{height:50%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 60'%3E%3Cpath d='M70 60 C52 50 58 34 66 24 C67 34 74 36 74 28 C74 18 80 10 88 4 C86 16 98 24 100 38 C102 50 94 60 82 60Z' fill='%23EE7A22' fill-opacity='.22'/%3E%3Cpath d='M98 60 C88 54 92 44 97 38 C98 44 102 45 103 40 C108 46 112 54 106 60Z' fill='%23F2A93B' fill-opacity='.28'/%3E%3Cpath d='M78 60 C70 54 74 46 79 42 C80 47 84 47 84 43 C90 48 92 56 86 60Z' fill='%23E8C547' fill-opacity='.35'/%3E%3C/svg%3E") no-repeat 100% 100%/auto 100%;transform-origin:85% 100%;animation:flackern 3.2s ease-in-out infinite}
+@keyframes wellen{to{background-position-x:120px}}
+@keyframes flackern{0%,100%{transform:scaleY(1)}35%{transform:scaleY(1.06) skewX(-1deg)}70%{transform:scaleY(.97) skewX(1deg)}}
+@media (prefers-reduced-motion:reduce){.gk.ww::after{animation:none}}
+.gk-bar.leer{visibility:hidden}
+.gcard.wasser,.gcard.feuer{position:relative;overflow:hidden}
+.gcard.wasser::before{content:"";position:absolute;inset:0 0 auto 0;height:120px;background:radial-gradient(120% 100% at 100% 0,color-mix(in srgb,#2F80ED 14%,transparent),transparent 70%);pointer-events:none}
+.gcard.feuer::before{content:"";position:absolute;inset:0 0 auto 0;height:120px;background:radial-gradient(120% 100% at 100% 0,color-mix(in srgb,#EE7A22 16%,transparent),transparent 70%);pointer-events:none}
+.gcard.wasser>*,.gcard.feuer>*{position:relative}
+.pgross{display:flex;align-items:baseline;gap:6px;margin:-2px 0 4px}
+.pgross b{font:500 44px/1 var(--num);letter-spacing:-1px}
+.pgross span{font:500 16px var(--font);color:var(--muted)}
+.pgross em{font:600 14px var(--font);font-style:normal;margin-left:auto}
+.pchart{width:100%;height:auto;display:block;margin:2px 0 6px}
+.pc-raster{stroke:var(--line);stroke-width:1}
+.pc-y{font:500 10px var(--num);fill:var(--muted);text-anchor:end}
+.pc-x{font:500 10px var(--font);fill:var(--muted)}
+.pc-alarm{font:600 10px var(--font);fill:#D7261E;text-anchor:end}
+.pwerte{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px;margin:6px 0 4px}
+.pwerte div{background:var(--soft);border-radius:12px;padding:8px 10px}
+.pwerte span{display:block;font-size:11.5px;color:var(--muted)}
+.pwerte b{font:600 16px var(--num)}
+.palarm2{margin-top:10px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,#2F80ED 10%,transparent)}
+.palarm2.ueber{background:color-mix(in srgb,#D7261E 14%,transparent)}
+.pa-kopf{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted)}
+.pa-kopf b{color:var(--ink);font-weight:600}
+.palarm2.ueber .pa-kopf b{color:#D7261E}
+.pa-bar{height:6px;border-radius:3px;background:var(--line);margin-top:7px;overflow:hidden}
+.pa-bar i{display:block;height:100%;border-radius:3px;background:#2F80ED}
+.palarm2.ueber .pa-bar i{background:#D7261E}
+.pwt{display:flex;align-items:center;gap:12px;margin-top:10px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,#0EA5C6 10%,transparent)}
+.pwt-ic{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:color-mix(in srgb,#0EA5C6 18%,transparent);color:#0EA5C6;flex:none}
+.pwt b{display:block;font:600 15px var(--font)}
+.pwt span{display:block;font-size:12.5px;color:var(--muted);margin-top:1px}
+.fheute{margin:-2px 0 8px}
+.fheute b{display:block;font:600 24px var(--font)}
+.fheute span{font-size:13px;color:var(--muted)}
+.frow2{padding:9px 0;border-top:1px solid var(--line)}
+.fl2{display:flex;align-items:center;gap:6px;font:600 14px var(--font);margin-bottom:7px}
+.fl2 svg{color:var(--muted)}
+.fcells2{display:flex;gap:6px}
+.fc2{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.fc2 span{font-size:11px;color:var(--muted);white-space:nowrap}
+.fc2 b{display:grid;place-items:center;width:100%;height:32px;border-radius:10px;font:700 15px var(--num)}
+.flegende{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:11.5px;color:var(--muted)}
+.flegende i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.flinks{display:flex;gap:14px}
+.gleer.blau .gleer-ic{background:color-mix(in srgb,#2F80ED 15%,transparent);color:#2F80ED}
+.gleer.orange .gleer-ic{background:color-mix(in srgb,#EE7A22 15%,transparent);color:#EE7A22}
 /* ---------- Gesundheit ---------- */
 .gkacheln{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .gk{background:var(--surface);border-radius:18px;padding:12px 14px 12px;min-width:0;position:relative;overflow:hidden}
@@ -1280,34 +1332,97 @@ function pegelAlarm() {
   if (!s || !pg || pg.v == null) return null;
   return { schwelle: s, diff: pg.v - s, ueber: pg.v >= s };
 }
-function feuerHtml() {
-  const F = S.lage?.feuer, links = `<div class="linkrow"><a href="${CFG.links.wbi}" target="_blank" rel="noopener">Waldbrandindex</a><a href="${CFG.links.glfi}" target="_blank" rel="noopener">Graslandfeuerindex</a></div>`;
-  if (!F) return `<div class="tile wide"><div class="k">Waldbrand und Grasland</div><div class="s">${S.lage?.github === false ? "Die automatische Abfrage über GitHub ist noch nicht eingerichtet (siehe README). Bis dahin:" : "Werte werden geladen …"}</div>${links}</div>`;
-  const tage = n => (F.tage && F.tage.length >= n ? F.tage : ["Heute", "Morgen", "+2", "+3", "+4"]);
-  const reihe = (lab, arr) => !arr?.length ? "" : `<div class="frow"><span class="fl">${lab}</span><div class="fcells">${arr.map((v, i) => `<div class="fc"><span>${esc(i === 0 ? "Heute" : i === 1 ? "Morgen" : tage(arr.length)[i])}</span><b class="fs f${v}" title="${FEUER_STUFEN[v] || ""}">${v}</b></div>`).join("")}</div></div>`;
-  if (!F.wbi?.length && !F.glfi?.length) return `<div class="tile wide"><div class="k">Waldbrand und Grasland, ${esc(F.station || "")}</div><div class="s">Zurzeit veröffentlicht der DWD keine Werte (außerhalb der Saison üblich).</div>${links}</div>`;
-  const heute = Math.max(F.wbi?.[0] || 0, F.glfi?.[0] || 0);
-  return `<div class="tile wide"><div class="k">Waldbrand und Grasland, Station ${esc(F.station || "")}</div>
-    <div class="s">Heute höchstens Stufe ${heute} von 5 (${FEUER_STUFEN[heute] || "–"})</div>
-    ${reihe("WBI", F.wbi)}${reihe("GLFI", F.glfi)}
-    <div class="s">DWD${F.stand ? ", abgerufen " + esc(F.stand) : ""}</div></div>`;
+const FEUER_GEFAHR = ["", "sehr geringe Gefahr", "geringe Gefahr", "mittlere Gefahr", "hohe Gefahr", "sehr hohe Gefahr"];
+const FEUER_FARBEN = ["#9AA4AE", "#E8C547", "#F2A93B", "#EE7A22", "#D7261E", "#7A1033"];
+const WW_SYM = {
+  welle: '<path d="M2.5 9c1.6 0 1.6-1.5 3.2-1.5S7.3 9 8.9 9s1.6-1.5 3.2-1.5S13.7 9 15.3 9s1.6-1.5 3.2-1.5S20.1 9 21.5 9"/><path d="M2.5 14c1.6 0 1.6-1.5 3.2-1.5S7.3 14 8.9 14s1.6-1.5 3.2-1.5 1.6 1.5 3.2 1.5 1.6-1.5 3.2-1.5 1.6 1.5 3 1.5"/><path d="M2.5 19c1.6 0 1.6-1.5 3.2-1.5S7.3 19 8.9 19s1.6-1.5 3.2-1.5 1.6 1.5 3.2 1.5 1.6-1.5 3.2-1.5 1.6 1.5 3 1.5"/>',
+  tropfen: '<path d="M12 3.5s-6 6.4-6 10.6a6 6 0 0 0 12 0c0-4.2-6-10.6-6-10.6z"/><path d="M12 11v5"/><circle cx="12" cy="17" r="1.3"/>',
+  baum: '<path d="M12 21v-4"/><path d="M12 3l-5 7h3l-4 6h12l-4-6h3z"/>',
+  gras: '<path d="M4 20c1-4 1-8 0-12M8 20c0-5 1-9 3-12M12 20c0-6-1-10-3-13M16 20c0-5 1.5-9 4-11M20 20c-.5-3-.5-6 1-8"/>',
+  flamme: '<path d="M12 21c-3.9 0-6.5-2.6-6.5-6.2 0-3.1 2.2-5 3.6-7.5.5 1.6 1.4 2.6 2.4 3 .2-3 1.3-5.6 3.6-7.3-.2 2.6.8 4.3 2.2 6 1.1 1.4 1.7 3.1 1.7 5 0 4-3 7-7 7z"/>'
+};
+const wsym = (k, gr = 16) => `<svg width="${gr}" height="${gr}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${WW_SYM[k]}</svg>`;
+function wwKachel({ thema, farbe, sym, lab, wert, unter, balken }) {
+  return `<div class="gk ww ${thema}" style="--c:${farbe}"><div class="gk-top"><span class="gk-ic">${wsym(sym)}</span>${lab}</div>
+    <div class="gk-val">${wert}</div><div class="gk-sub">${unter}</div>
+    ${balken ? `<div class="gk-bar" aria-hidden="true">${balken}</div>` : `<div class="gk-bar leer"></div>`}</div>`;
+}
+const feuerBalken = v => [1, 2, 3, 4, 5].map(i => `<i style="${i <= v ? `background:${FEUER_FARBEN[i]}` : ""}"></i>`).join("");
+function feuerHeuteIndex(F) { const i = (F.tage || []).indexOf(`${pad(new Date().getDate())}.${pad(new Date().getMonth() + 1)}.`); return i >= 0 ? i : 0; }
+function pegelChart(series, schwelle, pg) {
+  if (!series || series.length < 3) return "";
+  const W = 320, H = 104, L = 30, R = 8, T = 14, B = 20, xs = series.map(s => s[0]), ys = series.map(s => s[1]);
+  let lo = Math.min(...ys), hi = Math.max(...ys);
+  const zeigS = schwelle != null && schwelle <= hi + Math.max(60, (hi - lo) * 2) && schwelle >= lo - 60;
+  if (zeigS) { lo = Math.min(lo, schwelle); hi = Math.max(hi, schwelle); }
+  const pad_ = Math.max(4, (hi - lo) * .12); lo -= pad_; hi += pad_;
+  const x0 = xs[0], x1 = xs[xs.length - 1], X = x => L + (x - x0) / (x1 - x0) * (W - L - R), Y = y => T + (1 - (y - lo) / (hi - lo)) * (H - T - B);
+  const d = series.map((s, i) => `${i ? "L" : "M"}${X(s[0]).toFixed(1)} ${Y(s[1]).toFixed(1)}`).join("");
+  const letzt = series[series.length - 1], mitte = x0 + (x1 - x0) / 2;
+  const gr = Math.round((hi - lo) / 3), raster = [lo + pad_, (lo + hi) / 2, hi - pad_].map(v => Math.round(v));
+  return `<svg class="pchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Pegelverlauf der letzten 48 Stunden">
+    <defs><linearGradient id="pgf" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2F80ED" stop-opacity=".35"/><stop offset="1" stop-color="#2F80ED" stop-opacity="0"/></linearGradient></defs>
+    ${raster.map(v => `<line x1="${L}" x2="${W - R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" class="pc-raster"/><text x="${L - 5}" y="${(Y(v) + 3.5).toFixed(1)}" class="pc-y">${v}</text>`).join("")}
+    <path d="${d} L${X(x1)} ${H - B} L${X(x0)} ${H - B}Z" fill="url(#pgf)"/>
+    <path d="${d}" fill="none" stroke="#2F80ED" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+    ${zeigS ? `<line x1="${L}" x2="${W - R}" y1="${Y(schwelle).toFixed(1)}" y2="${Y(schwelle).toFixed(1)}" stroke="#D7261E" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${W - R}" y="${(Y(schwelle) - 4).toFixed(1)}" class="pc-alarm">Alarm ${schwelle} cm</text>` : ""}
+    <circle cx="${X(letzt[0]).toFixed(1)}" cy="${Y(letzt[1]).toFixed(1)}" r="4.5" fill="#2F80ED" stroke="var(--surface)" stroke-width="2"/>
+    <text x="${L}" y="${H - 5}" class="pc-x">vor 48 Std</text><text x="${X(mitte).toFixed(1)}" y="${H - 5}" class="pc-x" text-anchor="middle">vor 24 Std</text><text x="${W - R}" y="${H - 5}" class="pc-x" text-anchor="end">jetzt</text>
+  </svg>`;
 }
 function extrasHtml() {
-  const pg = S.pegel, al = pegelAlarm();
-  let pegel = `<div class="tile wide"><div class="k">Weser, Pegel ${esc(CFG.pegel.name)}</div><div class="s">${S.pegelErr ? `Pegel gerade nicht erreichbar. <a href="${CFG.links.pegel}" target="_blank" rel="noopener">PEGELONLINE öffnen</a>` : "Pegel wird geladen …"}</div></div>`;
-  if (pg && pg.v != null) {
-    const tr = pg.trend === 1 ? "steigend" : pg.trend === -1 ? "fallend" : "gleichbleibend";
-    const zs = { low: "niedrig", normal: "normal", high: "hoch" }[pg.state] || "";
+  const pg = S.pegel, al = pegelAlarm(), F = S.lage?.feuer, kacheln = [];
+  const tr = pg ? (pg.trend === 1 ? "steigend" : pg.trend === -1 ? "fallend" : "gleichbleibend") : "";
+  const pfeil = pg ? (pg.trend === 1 ? "↗" : pg.trend === -1 ? "↘" : "→") : "";
+  const zs = pg ? ({ low: "niedrig", normal: "normal", high: "hoch" }[pg.state] || "") : "";
+  const pegelFarbe = al?.ueber || pg?.state === "high" ? "#D7261E" : pg?.state === "low" ? "#E2B400" : "#2F80ED";
+  // ---- Kacheln
+  if (pg?.v != null) {
+    const balken = al ? Array.from({ length: 5 }, (_, i) => `<i style="${(i + 1) / 5 <= Math.min(1, pg.v / al.schwelle) + .001 ? `background:${al.ueber ? "#D7261E" : "#2F80ED"}` : ""}"></i>`).join("") : null;
+    kacheln.push(wwKachel({ thema: "wasser", farbe: pegelFarbe, sym: "welle", lab: `Pegel ${esc(CFG.pegel.name)}`, wert: `${rnd(pg.v)} <small>cm</small>`, unter: `${pfeil} ${tr}${zs ? " · " + zs : ""}`, balken }));
+  } else kacheln.push(wwKachel({ thema: "wasser", farbe: "#2F80ED", sym: "welle", lab: `Pegel ${esc(CFG.pegel.name)}`, wert: "–", unter: S.pegelErr ? "nicht erreichbar" : "wird geladen …" }));
+  kacheln.push(wwKachel({ thema: "wasser", farbe: "#0EA5C6", sym: "tropfen", lab: "Wasser", wert: pg?.wt ? `${nf(pg.wt.v, 1)} <small>°C</small>` : "–", unter: pg?.wt ? (pg.wt.km > 0.5 ? `${esc(schoen(pg.wt.name))} · ${nf(pg.wt.km, 0)} km` : "am Pegel gemessen") : "keine Messung in der Nähe" }));
+  const hi = F ? feuerHeuteIndex(F) : 0, wbi = F?.wbi?.[hi], glfi = F?.glfi?.[hi];
+  const feuerUnter = v => v ? FEUER_GEFAHR[v] : (F ? "keine Werte (Saison)" : "nicht verfügbar");
+  kacheln.push(wwKachel({ thema: "feuer", farbe: FEUER_FARBEN[wbi || 0], sym: "baum", lab: "Waldbrand", wert: wbi ? `${wbi} <small>von 5</small>` : "–", unter: feuerUnter(wbi), balken: wbi ? feuerBalken(wbi) : null }));
+  kacheln.push(wwKachel({ thema: "feuer", farbe: FEUER_FARBEN[glfi || 0], sym: "gras", lab: "Grasland", wert: glfi ? `${glfi} <small>von 5</small>` : "–", unter: feuerUnter(glfi), balken: glfi ? feuerBalken(glfi) : null }));
+  let h = `<section class="blk"><h2>Weser &amp; Wald</h2><div class="gkacheln">${kacheln.join("")}</div>`;
+
+  // ---- Karte: Weser
+  if (pg?.v != null) {
     const ch = v => v == null ? "–" : `${v > 0 ? "+" : v < 0 ? "−" : "±"}${Math.abs(Math.round(v))} cm`;
-    const alarm = al ? `<div class="palarm${al.ueber ? " on" : ""}">${al.ueber ? `Alarmschwelle ${al.schwelle} cm überschritten (+${Math.round(al.diff)} cm)` : `Noch ${Math.round(-al.diff)} cm bis zur Alarmschwelle (${al.schwelle} cm)`}</div>` : "";
-    const wt = pg.wt ? `<div class="wtemp"><b class="num">${nf(pg.wt.v, 1)} °C</b><span>Wassertemperatur${pg.wt.km > 0.5 ? `, Pegel ${esc(schoen(pg.wt.name))} (${nf(pg.wt.km, 0)} km)` : ""}, ${hm(new Date(pg.wt.t))} Uhr</span></div>` : "";
-    pegel = `<div class="tile wide"><div class="k">${esc(pg.water ? schoen(pg.water) : "Weser")}, Pegel ${esc(CFG.pegel.name)}</div>
-      <div class="v num">${rnd(pg.v)}<small>cm</small></div>
-      <div class="s">${tr}${zs ? ", Wasserstand " + zs : ""}. 6 Std: ${ch(pg.d6)}, 24 Std: ${ch(pg.d24)}${pg.p6 != null ? `. Vorhersage +6 Std: ${rnd(pg.p6)} cm` : ""}${pg.p24 != null ? `, +24 Std: ${rnd(pg.p24)} cm` : ""}</div>
-      ${alarm}<div class="spark">${sparkline(pg.series, al?.schwelle)}</div>
-      ${wt}<div class="s">Stand ${hm(new Date(pg.t))} Uhr</div></div>`;
+    const werte = [["6 Std", ch(pg.d6)], ["24 Std", ch(pg.d24)]];
+    if (pg.p6 != null) werte.push(["in 6 Std", `${rnd(pg.p6)} cm`]); else werte.push(["Trend", tr]);
+    if (pg.p24 != null) werte.push(["in 24 Std", `${rnd(pg.p24)} cm`]);
+    const alarm = al ? `<div class="palarm2${al.ueber ? " ueber" : ""}"><div class="pa-kopf"><span>Alarmschwelle ${al.schwelle} cm</span><b>${al.ueber ? `überschritten um ${Math.round(al.diff)} cm` : `noch ${Math.round(-al.diff)} cm`}</b></div><div class="pa-bar"><i style="width:${Math.min(100, pg.v / al.schwelle * 100).toFixed(1)}%"></i></div></div>` : "";
+    const wt = pg.wt ? `<div class="pwt"><span class="pwt-ic">${wsym("tropfen", 18)}</span><div><b>${nf(pg.wt.v, 1)} °C Wassertemperatur</b><span>${pg.wt.km > 0.5 ? `Pegel ${esc(schoen(pg.wt.name))}, ${nf(pg.wt.km, 0)} km entfernt` : `Pegel ${esc(CFG.pegel.name)}`} · ${hm(new Date(pg.wt.t))} Uhr</span></div></div>` : "";
+    h += `<div class="gcard wasser"><div class="gc-kopf"><span class="gc-titel">${wsym("welle")}Pegel ${esc(CFG.pegel.name)}</span><span class="gpill" style="--c:${pegelFarbe}">${zs ? "Wasserstand " + zs : tr}</span></div>
+      <div class="pgross"><b>${rnd(pg.v)}</b><span>cm</span><em style="color:${pegelFarbe}">${pfeil} ${tr}</em></div>
+      ${pegelChart(pg.series, al?.schwelle, pg)}
+      <div class="pwerte">${werte.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("")}</div>
+      ${alarm}${wt}
+      <div class="gc-fuss"><span>WSV PEGELONLINE · Stand ${hm(new Date(pg.t))} Uhr</span><button class="glink" data-a="eseite:einsatz">Alarm einstellen ›</button></div></div>`;
+  } else h += `<div class="gcard wasser"><div class="gc-kopf"><span class="gc-titel">${wsym("welle")}Pegel ${esc(CFG.pegel.name)}</span></div><div class="gleer blau"><span class="gleer-ic">${wsym("welle", 22)}</span><div><b>${S.pegelErr ? "Gerade nicht erreichbar" : "Wird geladen …"}</b><span>${S.pegelErr ? `<a href="${CFG.links.pegel}" target="_blank" rel="noopener">PEGELONLINE öffnen</a>` : ""}</span></div></div></div>`;
+
+  // ---- Karte: Waldbrand und Grasland
+  const links = `<span class="flinks"><a class="glink" href="${CFG.links.wbi}" target="_blank" rel="noopener">WBI ›</a><a class="glink" href="${CFG.links.glfi}" target="_blank" rel="noopener">GLFI ›</a></span>`;
+  if (!F || (!F.wbi?.length && !F.glfi?.length)) {
+    const txt = !F ? (S.lage?.github === false ? ["Noch nicht eingerichtet", "Die automatische Abfrage über GitHub fehlt (siehe README)."] : ["Wird geladen …", ""]) : ["Keine Werte", "Außerhalb der Saison veröffentlicht der DWD meist keine Werte."];
+    h += `<div class="gcard feuer"><div class="gc-kopf"><span class="gc-titel">${wsym("flamme")}Waldbrand &amp; Grasland</span>${F?.station ? `<span class="gpill">${esc(F.station)}</span>` : ""}</div>
+      <div class="gleer orange"><span class="gleer-ic">${wsym("flamme", 22)}</span><div><b>${txt[0]}</b><span>${txt[1]}</span></div></div>
+      <div class="gc-fuss"><span>Deutscher Wetterdienst</span>${links}</div></div>`;
+  } else {
+    const heute = Math.max(wbi || 0, glfi || 0);
+    const tage = F.tage?.length ? F.tage : [];
+    const tagName = i => i === hi ? "Heute" : i === hi + 1 ? "Morgen" : (tage[i] || `+${i - hi}`);
+    const reihe = (lab, sym, arr) => !arr?.length ? "" : `<div class="frow2"><span class="fl2">${wsym(sym)}${lab}</span><div class="fcells2">${arr.map((v, i) => i < hi ? "" : `<div class="fc2"><span>${esc(tagName(i))}</span><b style="background:${FEUER_FARBEN[v]};color:${v >= 4 ? "#fff" : "#2A2016"}" title="${FEUER_STUFEN[v] || ""}">${v}</b></div>`).join("")}</div></div>`;
+    h += `<div class="gcard feuer"><div class="gc-kopf"><span class="gc-titel">${wsym("flamme")}Waldbrand &amp; Grasland</span><span class="gpill">${esc(F.station || "")}</span></div>
+      <div class="fheute"><b style="color:${FEUER_FARBEN[heute]}">Stufe ${heute} von 5</b><span>heute höchstens ${FEUER_GEFAHR[heute] || "–"}</span></div>
+      ${reihe("Waldbrand (WBI)", "baum", F.wbi)}${reihe("Grasland (GLFI)", "gras", F.glfi)}
+      <div class="flegende">${[1, 2, 3, 4, 5].map(i => `<span><i style="background:${FEUER_FARBEN[i]}"></i>${FEUER_STUFEN[i]}</span>`).join("")}</div>
+      <div class="gc-fuss"><span>DWD, Station ${esc(F.station || "")}${F.stand ? ` · abgerufen ${esc(F.stand)}` : ""}</span>${links}</div></div>`;
   }
-  return `<section class="blk"><h2>Weser &amp; Wald</h2><div class="tiles">${pegel}${feuerHtml()}</div></section>`;
+  return h + `</section>`;
 }
 function sparkline(series, schwelle) {
   if (!series || series.length < 3) return "";
