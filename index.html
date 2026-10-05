@@ -1274,7 +1274,7 @@ async function ladeWassertemp(info) {
 }
 const schoen = s => s ? s.toLowerCase().replace(/(^|[\s-])(\S)/g, (m, a, b) => a + b.toUpperCase()) : "";
 
-/* ---------- Für den Einsatz ---------- */
+/* ---------- Weser & Wald (Pegel, Wassertemperatur, Feuerindizes) ---------- */
 function pegelAlarm() {
   const s = S.settings.schwellen.pegel, pg = S.pegel;
   if (!s || !pg || pg.v == null) return null;
@@ -1307,7 +1307,7 @@ function extrasHtml() {
       ${alarm}<div class="spark">${sparkline(pg.series, al?.schwelle)}</div>
       ${wt}<div class="s">Stand ${hm(new Date(pg.t))} Uhr</div></div>`;
   }
-  return `<section class="blk"><h2>Für den Einsatz <button class="mini" data-a="teilen">Lage teilen</button></h2><div class="tiles">${pegel}${feuerHtml()}</div></section>`;
+  return `<section class="blk"><h2>Weser &amp; Wald</h2><div class="tiles">${pegel}${feuerHtml()}</div></section>`;
 }
 function sparkline(series, schwelle) {
   if (!series || series.length < 3) return "";
@@ -1595,7 +1595,7 @@ function pushHtml(sw) {
     <div class="thr one"><div><label for="p-warn">Amtliche Warnungen</label>${sel("p-warn", [[1, "Alle Warnungen (ab Stufe 1)"], [2, "Ab markantem Wetter (Stufe 2)"], [3, "Nur Unwetter (ab Stufe 3)"], [0, "Keine Warnungen"]], P.warnStufe)}</div></div>
     ${P.warnStufe > 0 ? `<div class="setting"><div>Entwarnungen<span>Wenn eine Warnung aufgehoben ist</span></div>${sw(P.entwarnung, "pset:entwarnung", "Entwarnungen")}</div>` : ""}
     <div class="setting"><div>Regen kommt<span>10 bis 45 Minuten vorher laut Radar, höchstens alle 3 Stunden</span></div>${sw(P.regen, "pset:regen", "Regen-Hinweis")}</div>
-    <div class="setting"><div>Für den Einsatz<span>Pegel-Alarm, Böen und Frost über deinen Schwellwerten</span></div>${sw(P.einsatz, "pset:einsatz", "Einsatz-Hinweise")}</div></div>`;
+    <div class="setting"><div>Weser &amp; Wald<span>Pegel-Alarm, Böen und Frost über deinen Schwellwerten</span></div>${sw(P.einsatz, "pset:einsatz", "Weser und Wald")}</div></div>`;
   h += `<div class="plist" style="margin-top:16px"><div class="setting"><div>Test<span>Schickt sofort eine Probe-Benachrichtigung an dieses Gerät</span></div><button class="btn ghost" data-a="ptest">Senden</button></div></div>`;
   return h;
 }
@@ -1629,7 +1629,7 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("mess
 const ESYM = {
   orte: '<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>',
   push: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
-  einsatz: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6"/><path d="M6.4 6.4l3 3M14.6 14.6l3 3M17.6 6.4l-3 3M9.4 14.6l-3 3"/>',
+  einsatz: '<path d="M2.5 18.5c1.6 0 1.6-1.4 3.2-1.4s1.6 1.4 3.2 1.4 1.6-1.4 3.2-1.4"/><path d="M2.5 14.5c1.6 0 1.6-1.4 3.2-1.4s1.6 1.4 3.2 1.4"/><path d="M17.5 21v-3.5"/><path d="M17.5 3.5l-4 6h2.3l-3 5h9.4l-3-5h2.3z"/>',
   gesundheit: '<path d="M12 20s-7-4.3-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.7-7 10-7 10z"/>',
   karte: '<path d="M9 4l-5 2v14l5-2 6 2 5-2V4l-5 2z"/><path d="M9 4v14M15 6v14"/>',
   app: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".6" fill="currentColor"/>'
@@ -1637,7 +1637,7 @@ const ESYM = {
 const ESEITEN = [
   { id: "orte", titel: "Orte", farbe: "#2F80ED", gruppe: 0 },
   { id: "push", titel: "Benachrichtigungen", farbe: "#F2994A", gruppe: 0 },
-  { id: "einsatz", titel: "Für den Einsatz", farbe: "#D7261E", gruppe: 1 },
+  { id: "einsatz", titel: "Weser & Wald", farbe: "#12A08A", gruppe: 1 },
   { id: "gesundheit", titel: "Gesundheit", farbe: "#27AE60", gruppe: 1 },
   { id: "karte", titel: "Radarkarte", farbe: "#0EA5C6", gruppe: 1 },
   { id: "app", titel: "App und Info", farbe: "#6B7280", gruppe: 2 }
@@ -1687,11 +1687,11 @@ function eOrteHtml(sw) {
 }
 function eEinsatzHtml(sw) {
   const st = S.settings;
-  let h = `<div class="plist"><div class="setting"><div>Im Wetter-Tab anzeigen<span>Weser-Pegel mit Wassertemperatur, Waldbrand- und Graslandindex, Hinweise bei überschrittenen Schwellwerten</span></div>${sw(st.extras, "extras", "Einsatz-Bereich")}</div></div>`;
+  let h = `<div class="plist"><div class="setting"><div>Im Wetter-Tab anzeigen<span>Weser-Pegel mit Wassertemperatur, Waldbrand- und Graslandindex, Hinweise bei überschrittenen Schwellwerten</span></div>${sw(st.extras, "extras", "Weser und Wald anzeigen")}</div></div>`;
   if (st.extras) h += elabel("Schwellwerte") + `<div class="plist">
     <div class="thr"><div><label for="t-boen">Böen ab km/h</label><input type="number" id="t-boen" inputmode="numeric" value="${st.schwellen.boen}"></div><div><label for="t-frost">Frost ab °C</label><input type="number" id="t-frost" inputmode="decimal" value="${st.schwellen.frost}"></div><div><label for="t-sicht">Sicht unter m</label><input type="number" id="t-sicht" inputmode="numeric" value="${st.schwellen.sicht}"></div></div></div>`
     + elabel("Pegel-Alarm") + `<div class="plist"><div class="thr two"><div><label for="t-pegel">Alarm ab cm</label><input type="number" id="t-pegel" inputmode="numeric" placeholder="aus" value="${st.schwellen.pegel ?? ""}"></div><div class="hintc">Pegel ${esc(CFG.pegel.name)}${S.pegel?.v != null ? `, aktuell ${rnd(S.pegel.v)} cm` : ""}. Leer lassen schaltet den Alarm ab.</div></div></div>
-    <p class="ehinweis">Die Schwellwerte gelten auch für Push-Benachrichtigungen, wenn dort „Für den Einsatz“ eingeschaltet ist.</p>`;
+    <p class="ehinweis">Die Schwellwerte gelten auch für Push-Benachrichtigungen, wenn dort „Weser &amp; Wald“ eingeschaltet ist.</p>`;
   return h;
 }
 function eGesundheitHtml(sw) {
@@ -1724,7 +1724,7 @@ function eAppHtml() {
 const ETEXT = {
   orte: "Deine Orte und der aktuelle Standort.",
   push: "Hinweise aufs Handy, auch wenn die App geschlossen ist.",
-  einsatz: "Pegel, Waldbrandindex und eigene Schwellwerte.",
+  einsatz: "Pegel, Wassertemperatur, Waldbrandindex und eigene Schwellwerte.",
   gesundheit: "Pollenflug, Biowetter und gefühlte Belastung.",
   karte: "Karte unter dem Regenradar.",
   app: "Version, Daten und Quellen."
