@@ -197,6 +197,24 @@ a{color:var(--rain)}
 .daydet .mg-scroll{margin:0 -4px}
 img.wi{display:block;flex:none;pointer-events:none}
 .hero-btns{display:flex;gap:8px}
+
+
+.mrow.wahl{padding:11px 14px}
+.mrow.wahl .haken{color:var(--rain);flex:none}
+.mrow.wahl.an b{color:var(--rain)}
+/* ---------- Kacheln als Einstieg, Details im Blatt ---------- */
+.gk[role=button]{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s ease}
+.gk[role=button]:active{transform:scale(.97)}
+.gk-mehr{position:absolute;top:10px;right:12px;font:600 18px/1 var(--font);color:var(--muted);opacity:.55;z-index:1}
+.dsheet{padding-top:8px}
+.dgriff{display:flex;align-items:center;justify-content:center;position:relative;height:30px;margin-bottom:6px}
+.dgriff>span{width:42px;height:5px;border-radius:3px;background:var(--line)}
+.dgriff .ibtn{position:absolute;right:0;top:-2px}
+.dsheet .gcard{margin-bottom:0}
+.uvchart{display:flex;align-items:flex-end;gap:4px;height:84px;margin:8px 0 4px}
+.uvchart div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;height:100%}
+.uvchart i{display:block;width:100%;border-radius:4px 4px 2px 2px}
+.uvchart span{font-size:10px;color:var(--muted)}
 /* ---------- Weser & Wald ---------- */
 .gk.ww::after{content:"";position:absolute;left:0;right:0;bottom:0;pointer-events:none}
 .gk.wasser::after{height:34%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40' preserveAspectRatio='none'%3E%3Cpath d='M0 16 Q15 6 30 16 T60 16 T90 16 T120 16 V40 H0Z' fill='%232F80ED' fill-opacity='.16'/%3E%3Cpath d='M0 26 Q15 17 30 26 T60 26 T90 26 T120 26 V40 H0Z' fill='%232F80ED' fill-opacity='.2'/%3E%3C/svg%3E") repeat-x 0 100%/120px 100%;animation:wellen 9s linear infinite}
@@ -742,6 +760,7 @@ const S = {
   curId: store.get("cur", null),
   settings: Object.assign({ extras: true, notify: false, gesundheit: true, radarWolken: true, pollenRegion: 42, pollenArten: ["Hasel", "Erle", "Esche", "Birke", "Graeser", "Roggen", "Beifuss", "Ambrosia"], bioZone: "C", schwellen: { ...CFG.schwellen } }, store.get("settings", {})),
   lage: store.get("lage", null),
+  pegelAuto: store.get("pegelAuto", null),
   raw: {}, daten: {}, radar: null, mgSel: {}, pegel: store.get("pegel", null),
   tab: "wetter", selHour: 0, openDay: null, busy: false, err: null,
   hist: { mode: "zeitraum", preset: "30", von: null, bis: null, monat: new Date().getMonth(), res: null, busy: false, err: null },
@@ -910,8 +929,30 @@ function nowcast() {
 }
 
 /* ---------- Pegel ---------- */
+/* ---------- Pegel-Messstelle: automatisch die nächste oder selbst gewählt ---------- */
+function pegelName() { return schoen(S.pegel?.name || S.settings.pegelWahl?.name || S.pegelAuto?.name || "Pegel"); }
+function gewaesserName() { return schoen(S.pegel?.water || S.settings.pegelWahl?.water || S.pegelAuto?.water || "Weser"); }
+async function pegelInDerNaehe(p, radius = 60) {
+  const l = await getJSON(`${PO}/stations.json?latitude=${p.lat}&longitude=${p.lon}&radius=${radius}&includeTimeseries=true`, { timeout: 12000 });
+  return (l || []).filter(s => s.latitude != null && (s.timeseries || []).some(t => t.shortname === "W"))
+    .map(s => ({ id: s.uuid, name: s.longname, water: s.water?.longname || "", km: kmZwischen(p.lat, p.lon, s.latitude, s.longitude) }))
+    .sort((a, b) => a.km - b.km);
+}
+async function pegelStation() {
+  if (S.settings.pegelWahl?.id) return S.settings.pegelWahl;
+  const p = aktOrt(), a = S.pegelAuto;
+  if (a && a.pid === p.id && Math.abs(a.lat - p.lat) < .01 && Math.abs(a.lon - p.lon) < .01) return a;
+  const liste = await pegelInDerNaehe(p).catch(() => []);
+  const n = liste[0];
+  S.pegelAuto = n ? { ...n, pid: p.id, lat: p.lat, lon: p.lon } : { id: null, pid: p.id, lat: p.lat, lon: p.lon };
+  store.set("pegelAuto", S.pegelAuto);
+  return S.pegelAuto;
+}
 async function ladePegel() {
-  const st = CFG.pegel.station;
+  const wahl = await pegelStation();
+  S.pegelKeine = !wahl?.id;
+  if (!wahl?.id) { S.pegel = null; throw new Error("Keine Pegel-Messstelle in der Nähe"); }
+  const st = wahl.id;
   const [info, meas, wv] = await Promise.allSettled([
     getJSON(`${PO}/stations/${st}.json?includeTimeseries=true&includeCurrentMeasurement=true`),
     getJSON(`${PO}/stations/${st}/W/measurements.json?start=P2D`),
@@ -926,7 +967,7 @@ async function ladePegel() {
   const now = Date.now();
   const prog = wv.status === "fulfilled" ? wv.value.map(x => [new Date(x.timestamp).getTime(), x.value]).filter(x => x[0] > now) : [];
   const progAt = h => { const z = now + h * 3600e3; const x = prog.find(e => e[0] >= z); return x ? x[1] : null; };
-  S.pegel = { ts: Date.now(), name: info.value?.longname || st, water: info.value?.water?.longname || CFG.pegel.gewaesser, v: last?.v, t: last?.t, trend: cm?.trend, state: cm?.stateMnwMhw, d6: last ? vorher(6) : null, d24: last ? vorher(24) : null, series: m.filter((_, i) => i % 3 === 0), p6: progAt(6), p24: progAt(24) };
+  S.pegel = { ts: Date.now(), id: st, name: info.value?.longname || wahl.name || st, water: info.value?.water?.longname || wahl.water || "", km: wahl.km, v: last?.v, t: last?.t, trend: cm?.trend, state: cm?.stateMnwMhw, d6: last ? vorher(6) : null, d24: last ? vorher(24) : null, series: m.filter((_, i) => i % 3 === 0), p6: progAt(6), p24: progAt(24) };
   S.pegel.wt = await ladeWassertemp(info.status === "fulfilled" ? info.value : null).catch(() => null);
   store.set("pegel", S.pegel);
 }
@@ -1314,8 +1355,9 @@ async function ladeWassertemp(info) {
   const lat = info?.latitude ?? CFG.start.lat, lon = info?.longitude ?? CFG.start.lon, R = CFG.pegel.wtRadiusKm;
   const q = "timeseries=WT&includeTimeseries=true&includeCurrentMeasurement=true";
   let list = await getJSON(`${PO}/stations.json?${q}&latitude=${lat}&longitude=${lon}&radius=${R}`).catch(() => null);
-  if (!list?.length) list = await getJSON(`${PO}/stations.json?${q}&waters=${encodeURIComponent(CFG.pegel.gewaesser.toUpperCase())}`).catch(() => []);
-  const now = Date.now(), gew = CFG.pegel.gewaesser.toUpperCase();
+  const gew = (info?.water?.longname || "").toUpperCase();
+  if (!list?.length && gew) list = await getJSON(`${PO}/stations.json?${q}&waters=${encodeURIComponent(gew)}`).catch(() => []);
+  const now = Date.now();
   const k = (list || []).map(s => {
     const cm = (s.timeseries || []).find(t => t.shortname === "WT")?.currentMeasurement;
     if (!cm || s.latitude == null) return null;
@@ -1342,8 +1384,36 @@ const WW_SYM = {
   flamme: '<path d="M12 21c-3.9 0-6.5-2.6-6.5-6.2 0-3.1 2.2-5 3.6-7.5.5 1.6 1.4 2.6 2.4 3 .2-3 1.3-5.6 3.6-7.3-.2 2.6.8 4.3 2.2 6 1.1 1.4 1.7 3.1 1.7 5 0 4-3 7-7 7z"/>'
 };
 const wsym = (k, gr = 16) => `<svg width="${gr}" height="${gr}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${WW_SYM[k]}</svg>`;
-function wwKachel({ thema, farbe, sym, lab, wert, unter, balken }) {
-  return `<div class="gk ww ${thema}" style="--c:${farbe}"><div class="gk-top"><span class="gk-ic">${wsym(sym)}</span>${lab}</div>
+/* ---------- Detailansicht: Kachel antippen öffnet die große Karte ---------- */
+function zeigeDetail(key) {
+  const html = S.detail?.[key]; if (!html) return;
+  const sh = $("#sheet"); sh.hidden = false;
+  sh.innerHTML = `<div class="sheetbox dsheet" role="dialog" aria-modal="true"><div class="dgriff"><span></span><button class="ibtn" data-a="close" aria-label="Schließen"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>${html}</div>`;
+  history.pushState({ sheet: true }, "");
+}
+function feuerDaten() {
+  const F = S.lage?.feuer; if (!F) return null;
+  const p = aktOrt();
+  if (F.stationen?.length) {
+    const k = F.stationen.filter(s => s.lat != null && (s.wbi?.length || s.glfi?.length))
+      .map(s => ({ ...s, km: kmZwischen(p.lat, p.lon, s.lat, s.lon) })).sort((a, b) => a.km - b.km)[0];
+    if (k) return { station: k.name, km: k.km, wbi: k.wbi, glfi: k.glfi, tage: F.tage, stand: F.stand };
+  }
+  return { station: F.station, km: null, wbi: F.wbi, glfi: F.glfi, tage: F.tage, stand: F.stand };
+}
+const UV_RAT = ["Kein Schutz nötig, Aufenthalt im Freien unbedenklich.", "Mittags Schatten suchen. Sonnencreme, Hut und Sonnenbrille.", "Zwischen 11 und 15 Uhr Schatten suchen, schützende Kleidung und Sonnencreme.", "Mittags möglichst nicht in die Sonne. Unbedingt schützen.", "Aufenthalt im Freien um die Mittagszeit vermeiden."];
+function uvKarte(t0) {
+  const u = t0.uv, st = u < 3 ? 0 : u < 6 ? 1 : u < 8 ? 2 : u < 11 ? 3 : 4;
+  const std = t0.hours.filter(x => x.t.getHours() >= 7 && x.t.getHours() <= 20 && x.uv != null);
+  const mx = Math.max(3, ...std.map(x => x.uv));
+  const balken = std.length ? `<div class="uvchart">${std.map(x => { const s = x.uv < 3 ? 0 : x.uv < 6 ? 1 : x.uv < 8 ? 2 : x.uv < 11 ? 3 : 4; return `<div><i style="height:${Math.max(3, x.uv / mx * 64)}px;background:${G_FARBEN[s]}"></i><span>${x.t.getHours()}</span></div>`; }).join("")}</div>` : "";
+  return `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("uv", 16)}UV-Index</span><span class="gpill" style="--c:${G_FARBEN[st]}">${uvText(u)}</span></div>
+    <div class="fheute"><b style="color:${G_FARBEN[st]}">${nf(u, 0)}</b><span>Tageshöchstwert heute</span></div>${balken}
+    <div class="gtipp">${gsym("tipp", 18)}<span>${UV_RAT[st]}</span></div>
+    <div class="gc-fuss"><span>Open-Meteo, stündliche Vorhersage</span></div></div>`;
+}
+function wwKachel({ thema, farbe, sym, lab, wert, unter, balken, key }) {
+  return `<div class="gk ww ${thema}" style="--c:${farbe}" role="button" tabindex="0" data-a="detail:${key}"><span class="gk-mehr">›</span><div class="gk-top"><span class="gk-ic">${wsym(sym)}</span>${lab}</div>
     <div class="gk-val">${wert}</div><div class="gk-sub">${unter}</div>
     ${balken ? `<div class="gk-bar" aria-hidden="true">${balken}</div>` : `<div class="gk-bar leer"></div>`}</div>`;
 }
@@ -1371,7 +1441,7 @@ function pegelChart(series, schwelle, pg) {
   </svg>`;
 }
 function extrasHtml() {
-  const pg = S.pegel, al = pegelAlarm(), F = S.lage?.feuer, kacheln = [];
+  const pg = S.pegel, al = pegelAlarm(), F = feuerDaten(), kacheln = []; S.detail = S.detail || {};
   const tr = pg ? (pg.trend === 1 ? "steigend" : pg.trend === -1 ? "fallend" : "gleichbleibend") : "";
   const pfeil = pg ? (pg.trend === 1 ? "↗" : pg.trend === -1 ? "↘" : "→") : "";
   const zs = pg ? ({ low: "niedrig", normal: "normal", high: "hoch" }[pg.state] || "") : "";
@@ -1379,14 +1449,14 @@ function extrasHtml() {
   // ---- Kacheln
   if (pg?.v != null) {
     const balken = al ? Array.from({ length: 5 }, (_, i) => `<i style="${(i + 1) / 5 <= Math.min(1, pg.v / al.schwelle) + .001 ? `background:${al.ueber ? "#D7261E" : "#2F80ED"}` : ""}"></i>`).join("") : null;
-    kacheln.push(wwKachel({ thema: "wasser", farbe: pegelFarbe, sym: "welle", lab: `Pegel ${esc(CFG.pegel.name)}`, wert: `${rnd(pg.v)} <small>cm</small>`, unter: `${pfeil} ${tr}${zs ? " · " + zs : ""}`, balken }));
-  } else kacheln.push(wwKachel({ thema: "wasser", farbe: "#2F80ED", sym: "welle", lab: `Pegel ${esc(CFG.pegel.name)}`, wert: "–", unter: S.pegelErr ? "nicht erreichbar" : "wird geladen …" }));
-  kacheln.push(wwKachel({ thema: "wasser", farbe: "#0EA5C6", sym: "tropfen", lab: "Wasser", wert: pg?.wt ? `${nf(pg.wt.v, 1)} <small>°C</small>` : "–", unter: pg?.wt ? (pg.wt.km > 0.5 ? `${esc(schoen(pg.wt.name))} · ${nf(pg.wt.km, 0)} km` : "am Pegel gemessen") : "keine Messung in der Nähe" }));
+    kacheln.push(wwKachel({ thema: "wasser", farbe: pegelFarbe, sym: "welle", lab: `Pegel ${esc(pegelName())}`, wert: `${rnd(pg.v)} <small>cm</small>`, unter: `${pfeil} ${tr}${zs ? " · " + zs : ""}`, balken, key: "pegel" }));
+  } else kacheln.push(wwKachel({ thema: "wasser", farbe: "#2F80ED", sym: "welle", lab: `Pegel ${esc(pegelName())}`, wert: "–", unter: S.pegelKeine ? "keine Messstelle in der Nähe" : S.pegelErr ? "nicht erreichbar" : "wird geladen …", key: "pegel" }));
+  kacheln.push(wwKachel({ thema: "wasser", farbe: "#0EA5C6", sym: "tropfen", lab: "Wasser", wert: pg?.wt ? `${nf(pg.wt.v, 1)} <small>°C</small>` : "–", unter: pg?.wt ? (pg.wt.km > 0.5 ? `${esc(schoen(pg.wt.name))} · ${nf(pg.wt.km, 0)} km` : "am Pegel gemessen") : "keine Messung in der Nähe", key: "pegel" }));
   const hi = F ? feuerHeuteIndex(F) : 0, wbi = F?.wbi?.[hi], glfi = F?.glfi?.[hi];
-  const feuerUnter = v => v ? FEUER_GEFAHR[v] : (F ? "keine Werte (Saison)" : "nicht verfügbar");
-  kacheln.push(wwKachel({ thema: "feuer", farbe: FEUER_FARBEN[wbi || 0], sym: "baum", lab: "Waldbrand", wert: wbi ? `${wbi} <small>von 5</small>` : "–", unter: feuerUnter(wbi), balken: wbi ? feuerBalken(wbi) : null }));
-  kacheln.push(wwKachel({ thema: "feuer", farbe: FEUER_FARBEN[glfi || 0], sym: "gras", lab: "Grasland", wert: glfi ? `${glfi} <small>von 5</small>` : "–", unter: feuerUnter(glfi), balken: glfi ? feuerBalken(glfi) : null }));
-  let h = `<section class="blk"><h2>Weser &amp; Wald</h2><div class="gkacheln">${kacheln.join("")}</div>`;
+  const feuerUnter = v => v ? `${FEUER_GEFAHR[v]}${F?.station ? " · " + esc(F.station) : ""}` : (F ? "keine Werte (Saison)" : "nicht verfügbar");
+  kacheln.push(wwKachel({ thema: "feuer", farbe: FEUER_FARBEN[wbi || 0], sym: "baum", lab: "Waldbrand", wert: wbi ? `${wbi} <small>von 5</small>` : "–", unter: feuerUnter(wbi), balken: wbi ? feuerBalken(wbi) : null, key: "feuer" }));
+  kacheln.push(wwKachel({ thema: "feuer", farbe: FEUER_FARBEN[glfi || 0], sym: "gras", lab: "Grasland", wert: glfi ? `${glfi} <small>von 5</small>` : "–", unter: feuerUnter(glfi), balken: glfi ? feuerBalken(glfi) : null, key: "feuer" }));
+  let h = `<section class="blk"><h2>${esc(gewaesserName())} &amp; Wald <small>antippen für Details</small></h2><div class="gkacheln">${kacheln.join("")}</div>`;
 
   // ---- Karte: Weser
   if (pg?.v != null) {
@@ -1395,20 +1465,20 @@ function extrasHtml() {
     if (pg.p6 != null) werte.push(["in 6 Std", `${rnd(pg.p6)} cm`]); else werte.push(["Trend", tr]);
     if (pg.p24 != null) werte.push(["in 24 Std", `${rnd(pg.p24)} cm`]);
     const alarm = al ? `<div class="palarm2${al.ueber ? " ueber" : ""}"><div class="pa-kopf"><span>Alarmschwelle ${al.schwelle} cm</span><b>${al.ueber ? `überschritten um ${Math.round(al.diff)} cm` : `noch ${Math.round(-al.diff)} cm`}</b></div><div class="pa-bar"><i style="width:${Math.min(100, pg.v / al.schwelle * 100).toFixed(1)}%"></i></div></div>` : "";
-    const wt = pg.wt ? `<div class="pwt"><span class="pwt-ic">${wsym("tropfen", 18)}</span><div><b>${nf(pg.wt.v, 1)} °C Wassertemperatur</b><span>${pg.wt.km > 0.5 ? `Pegel ${esc(schoen(pg.wt.name))}, ${nf(pg.wt.km, 0)} km entfernt` : `Pegel ${esc(CFG.pegel.name)}`} · ${hm(new Date(pg.wt.t))} Uhr</span></div></div>` : "";
-    h += `<div class="gcard wasser"><div class="gc-kopf"><span class="gc-titel">${wsym("welle")}Pegel ${esc(CFG.pegel.name)}</span><span class="gpill" style="--c:${pegelFarbe}">${zs ? "Wasserstand " + zs : tr}</span></div>
+    const wt = pg.wt ? `<div class="pwt"><span class="pwt-ic">${wsym("tropfen", 18)}</span><div><b>${nf(pg.wt.v, 1)} °C Wassertemperatur</b><span>${pg.wt.km > 0.5 ? `Pegel ${esc(schoen(pg.wt.name))}, ${nf(pg.wt.km, 0)} km entfernt` : `Pegel ${esc(pegelName())}`} · ${hm(new Date(pg.wt.t))} Uhr</span></div></div>` : "";
+    S.detail.pegel = `<div class="gcard wasser"><div class="gc-kopf"><span class="gc-titel">${wsym("welle")}Pegel ${esc(pegelName())}</span><span class="gpill" style="--c:${pegelFarbe}">${zs ? "Wasserstand " + zs : tr}</span></div>
       <div class="pgross"><b>${rnd(pg.v)}</b><span>cm</span><em style="color:${pegelFarbe}">${pfeil} ${tr}</em></div>
       ${pegelChart(pg.series, al?.schwelle, pg)}
       <div class="pwerte">${werte.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("")}</div>
       ${alarm}${wt}
       <div class="gc-fuss"><span>WSV PEGELONLINE · Stand ${hm(new Date(pg.t))} Uhr</span><button class="glink" data-a="eseite:einsatz">Alarm einstellen ›</button></div></div>`;
-  } else h += `<div class="gcard wasser"><div class="gc-kopf"><span class="gc-titel">${wsym("welle")}Pegel ${esc(CFG.pegel.name)}</span></div><div class="gleer blau"><span class="gleer-ic">${wsym("welle", 22)}</span><div><b>${S.pegelErr ? "Gerade nicht erreichbar" : "Wird geladen …"}</b><span>${S.pegelErr ? `<a href="${CFG.links.pegel}" target="_blank" rel="noopener">PEGELONLINE öffnen</a>` : ""}</span></div></div></div>`;
+  } else S.detail.pegel = `<div class="gcard wasser"><div class="gc-kopf"><span class="gc-titel">${wsym("welle")}Pegel ${esc(pegelName())}</span></div><div class="gleer blau"><span class="gleer-ic">${wsym("welle", 22)}</span><div><b>${S.pegelErr ? "Gerade nicht erreichbar" : "Wird geladen …"}</b><span>${S.pegelErr ? `<a href="${CFG.links.pegel}" target="_blank" rel="noopener">PEGELONLINE öffnen</a>` : ""}</span></div></div></div>`;
 
   // ---- Karte: Waldbrand und Grasland
   const links = `<span class="flinks"><a class="glink" href="${CFG.links.wbi}" target="_blank" rel="noopener">WBI ›</a><a class="glink" href="${CFG.links.glfi}" target="_blank" rel="noopener">GLFI ›</a></span>`;
   if (!F || (!F.wbi?.length && !F.glfi?.length)) {
     const txt = !F ? (S.lage?.github === false ? ["Noch nicht eingerichtet", "Die automatische Abfrage über GitHub fehlt (siehe README)."] : ["Wird geladen …", ""]) : ["Keine Werte", "Außerhalb der Saison veröffentlicht der DWD meist keine Werte."];
-    h += `<div class="gcard feuer"><div class="gc-kopf"><span class="gc-titel">${wsym("flamme")}Waldbrand &amp; Grasland</span>${F?.station ? `<span class="gpill">${esc(F.station)}</span>` : ""}</div>
+    S.detail.feuer = `<div class="gcard feuer"><div class="gc-kopf"><span class="gc-titel">${wsym("flamme")}Waldbrand &amp; Grasland</span>${F?.station ? `<span class="gpill">${esc(F.station)}${F.km != null ? ` · ${nf(F.km, 0)} km` : ""}</span>` : ""}</div>
       <div class="gleer orange"><span class="gleer-ic">${wsym("flamme", 22)}</span><div><b>${txt[0]}</b><span>${txt[1]}</span></div></div>
       <div class="gc-fuss"><span>Deutscher Wetterdienst</span>${links}</div></div>`;
   } else {
@@ -1416,11 +1486,11 @@ function extrasHtml() {
     const tage = F.tage?.length ? F.tage : [];
     const tagName = i => i === hi ? "Heute" : i === hi + 1 ? "Morgen" : (tage[i] || `+${i - hi}`);
     const reihe = (lab, sym, arr) => !arr?.length ? "" : `<div class="frow2"><span class="fl2">${wsym(sym)}${lab}</span><div class="fcells2">${arr.map((v, i) => i < hi ? "" : `<div class="fc2"><span>${esc(tagName(i))}</span><b style="background:${FEUER_FARBEN[v]};color:${v >= 4 ? "#fff" : "#2A2016"}" title="${FEUER_STUFEN[v] || ""}">${v}</b></div>`).join("")}</div></div>`;
-    h += `<div class="gcard feuer"><div class="gc-kopf"><span class="gc-titel">${wsym("flamme")}Waldbrand &amp; Grasland</span><span class="gpill">${esc(F.station || "")}</span></div>
+    S.detail.feuer = `<div class="gcard feuer"><div class="gc-kopf"><span class="gc-titel">${wsym("flamme")}Waldbrand &amp; Grasland</span><span class="gpill">${esc(F.station || "")}${F.km != null ? ` · ${nf(F.km, 0)} km` : ""}</span></div>
       <div class="fheute"><b style="color:${FEUER_FARBEN[heute]}">Stufe ${heute} von 5</b><span>heute höchstens ${FEUER_GEFAHR[heute] || "–"}</span></div>
       ${reihe("Waldbrand (WBI)", "baum", F.wbi)}${reihe("Grasland (GLFI)", "gras", F.glfi)}
       <div class="flegende">${[1, 2, 3, 4, 5].map(i => `<span><i style="background:${FEUER_FARBEN[i]}"></i>${FEUER_STUFEN[i]}</span>`).join("")}</div>
-      <div class="gc-fuss"><span>DWD, Station ${esc(F.station || "")}${F.stand ? ` · abgerufen ${esc(F.stand)}` : ""}</span>${links}</div></div>`;
+      <div class="gc-fuss"><span>DWD, Messstation ${esc(F.station || "")}${F.km != null ? ` (${nf(F.km, 0)} km entfernt)` : ""}${F.stand ? ` · abgerufen ${esc(F.stand)}` : ""}</span>${links}</div></div>`;
   }
   return h + `</section>`;
 }
@@ -1497,8 +1567,8 @@ const pollenStufe = lv => lv <= 0 ? 0 : lv <= 2 ? 1 : lv <= 4 ? 2 : 3;
 const BIO_KACHEL = [[/allgemeine Befinden/, "Befinden"], [/hypotone|hypertone|Kreislauf/, "Kreislauf"], [/rheum/, "Rheuma"], [/Asthma/, "Asthma"], [/Thermische/, "Temperatur"]];
 const bioKurz = n => (BIO_KACHEL.find(([r]) => r.test(n)) || [0, bioName(n)])[1];
 function bioStufe(v) { return /hoch|stark/i.test(v) ? 3 : /mäßig|mittel/i.test(v) ? 2 : /gering/i.test(v) ? 1 : 0; }
-function gKachel(sym, lab, wert, unter, stufe, max = 4) {
-  return `<div class="gk" style="--c:${G_FARBEN[stufe]}"><div class="gk-top"><span class="gk-ic">${gsym(sym, 16)}</span>${lab}</div>
+function gKachel(sym, lab, wert, unter, stufe, max = 4, key = "") {
+  return `<div class="gk" style="--c:${G_FARBEN[stufe]}" role="button" tabindex="0" data-a="detail:${key}"><span class="gk-mehr">›</span><div class="gk-top"><span class="gk-ic">${gsym(sym, 16)}</span>${lab}</div>
     <div class="gk-val">${wert}</div><div class="gk-sub">${unter}</div>
     <div class="gk-bar" aria-hidden="true">${Array.from({ length: max }, (_, i) => `<i class="${i < stufe ? "an" : ""}"></i>`).join("")}</div></div>`;
 }
@@ -1514,30 +1584,30 @@ function gefuehltSkala(b) {
     <div class="gs-ticks"><span style="left:${pos(0)}%">0°</span><span style="left:${pos(20)}%">20°</span><span style="left:${pos(32)}%">32°</span></div></div>`;
 }
 function gesundheitHtml(d) {
-  const t0 = d.days[0], kacheln = [];
+  const t0 = d.days[0], kacheln = []; S.detail = S.detail || {};
   // ---- Pollen
   const pz = pollenZeilen();
   let pMax = 0, pName = "";
   if (pz) pz.zeilen.forEach(r => { if ((r.lv[0] || 0) > pMax) { pMax = r.lv[0]; pName = r.lab; } });
   const pSt = pollenStufe(pMax);
-  if (pz) kacheln.push(gKachel("pollen", "Pollen heute", pMax ? ["", "Gering", "Mittel", "Hoch"][pSt] : "Keine", pMax ? `vor allem ${esc(pName)}` : "kaum Pollenflug", pSt, 3));
+  if (pz) kacheln.push(gKachel("pollen", "Pollen heute", pMax ? ["", "Gering", "Mittel", "Hoch"][pSt] : "Keine", pMax ? `vor allem ${esc(pName)}` : "kaum Pollenflug", pSt, 3, "pollen"));
   // ---- gefühlte Belastung
   const tb = d.days.slice(0, 2).map((t, i) => [i ? "Morgen" : "Heute", tagesBelastung(t), t]).filter(x => x[1]);
   if (tb.length) {
     const b = tb[0][1], k = b.k[0], art = k > 0 ? "Wärme" : "Kälte";
-    kacheln.push(gKachel("temp", "Belastung", k === 0 ? "Keine" : ["", "Schwach", "Mäßig", "Stark", "Extrem"][Math.abs(k)], k === 0 ? "angenehm" : `durch ${art}`, Math.abs(k)));
+    kacheln.push(gKachel("temp", "Belastung", k === 0 ? "Keine" : ["", "Schwach", "Mäßig", "Stark", "Extrem"][Math.abs(k)], k === 0 ? "angenehm" : `durch ${art}`, Math.abs(k), 4, "temp"));
   }
   // ---- Biowetter
   const bp = bioPerioden();
   if (bp?.out.length) {
     const rel = bp.out[0][1].effekte.filter(([, v]) => bioRelevant(v)).sort((a, b) => bioStufe(b[1]) - bioStufe(a[1]));
     const st = rel.reduce((m, [, v]) => Math.max(m, bioStufe(v)), 0);
-    kacheln.push(gKachel("bio", "Biowetter", rel.length ? ["Ruhig", "Gering", "Mäßig", "Stark"][st] : "Ruhig", rel.length ? esc([...new Set(rel.map(([n]) => bioKurz(n)))].slice(0, 3).join(", ")) : "kaum Wettereinfluss", st, 3));
+    kacheln.push(gKachel("bio", "Biowetter", rel.length ? ["Ruhig", "Gering", "Mäßig", "Stark"][st] : "Ruhig", rel.length ? esc([...new Set(rel.map(([n]) => bioKurz(n)))].slice(0, 3).join(", ")) : "kaum Wettereinfluss", st, 3, "bio"));
   }
   // ---- UV
-  if (t0?.uv != null) { const u = t0.uv, st = u < 3 ? 0 : u < 6 ? 1 : u < 8 ? 2 : u < 11 ? 3 : 4; kacheln.push(gKachel("uv", "UV-Index", `${nf(u, 0)} <small>${uvText(u)}</small>`, "Tageshöchstwert", st)); }
+  if (t0?.uv != null) { const u = t0.uv, st = u < 3 ? 0 : u < 6 ? 1 : u < 8 ? 2 : u < 11 ? 3 : 4; kacheln.push(gKachel("uv", "UV-Index", `${nf(u, 0)} <small>${uvText(u)}</small>`, "Tageshöchstwert", st, 4, "uv")); S.detail.uv = uvKarte(t0); }
 
-  let h = `<section class="blk"><h2>Gesundheit</h2>`;
+  let h = `<section class="blk"><h2>Gesundheit <small>antippen für Details</small></h2>`;
   if (kacheln.length) h += `<div class="gkacheln">${kacheln.join("")}</div>`;
 
   // ---- Karte: Pollenflug
@@ -1546,13 +1616,13 @@ function gesundheitHtml(d) {
     if (!pz.zeilen.length) inhalt = `<div class="gleer"><span class="gleer-ic">${gsym("blatt", 22)}</span><div><b>Durchatmen</b><span>Zurzeit kein nennenswerter Pollenflug${S.settings.pollenArten.length < 8 ? " für deine gewählten Pollen" : ""}.</span></div></div>`;
     else inhalt = `<div class="gpt"><div class="gpt-kopf"><span></span><span>Heute</span><span>Morgen</span><span>Übermorgen</span></div>`
       + pz.zeilen.map(r => `<div class="gpt-zeile"><b>${r.lab}</b>${[0, 1, 2].map(i => `<span>${signal(r.lv[i] || 0)}<small>${r.lv[i] ? esc(POLLEN_STUFEN[r.v[i]][1]).replace("keine bis gering", "schwach") : "–"}</small></span>`).join("")}</div>`).join("") + `</div>`;
-    h += `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("pollen", 16)}Pollenflug</span><span class="gpill">${esc(pz.reg.name)}</span></div>${inhalt}
+    S.detail.pollen = `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("pollen", 16)}Pollenflug</span><span class="gpill">${esc(pz.reg.name)}</span></div>${inhalt}
       <div class="gc-fuss"><span>DWD · Stand ${fmtStand(S.lage.pollen.stand)}</span><button class="glink" data-a="eseite:gesundheit">Pollen wählen ›</button></div></div>`;
-  } else h += `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("pollen", 16)}Pollenflug</span></div><div class="gleer"><span class="gleer-ic">${gsym("pollen", 22)}</span><div><b>${S.lage ? "Gerade nicht verfügbar" : "Wird geladen …"}</b><span>${S.lage ? "Die Pollendaten kommen über die GitHub-Aktion." : ""}</span></div></div></div>`;
+  } else S.detail.pollen = `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("pollen", 16)}Pollenflug</span></div><div class="gleer"><span class="gleer-ic">${gsym("pollen", 22)}</span><div><b>${S.lage ? "Gerade nicht verfügbar" : "Wird geladen …"}</b><span>${S.lage ? "Die Pollendaten kommen über die GitHub-Aktion." : ""}</span></div></div></div>`;
 
   // ---- Karte: gefühlte Temperatur
   if (tb.length) {
-    h += `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("temp", 16)}Gefühlte Temperatur</span></div>`
+    S.detail.temp = `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("temp", 16)}Gefühlte Temperatur</span></div>`
       + tb.map(([lab, b]) => {
         const k = b.k[0], ab = Math.abs(k);
         const werte = b.t.hours.filter(x => x.t.getHours() >= 6 && x.t.getHours() <= 22 && x.felt != null).map(x => x.felt);
@@ -1569,7 +1639,7 @@ function gesundheitHtml(d) {
       return `<div class="gb-per"><div class="gb-lab">${lab}</div>${rel.length ? rel.map(([n, v]) => `<div class="gb-zeile"><i style="background:${G_FARBEN[bioStufe(v)]}"></i><span>${esc(bioName(n))}</span><b class="gpill" style="--c:${G_FARBEN[bioStufe(v)]}">${esc(v)}</b></div>`).join("") : `<div class="gb-ruhig">Kein nennenswerter Wettereinfluss</div>`}</div>`;
     }).join("");
     const rat = bp.out[0][1].rat.find(([, v]) => v)?.[1];
-    h += `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("bio", 16)}Biowetter</span><span class="gpill">Gebiet ${esc(bp.z.id)}</span></div>${blk}
+    S.detail.bio = `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("bio", 16)}Biowetter</span><span class="gpill">Gebiet ${esc(bp.z.id)}</span></div>${blk}
       ${rat ? `<div class="gtipp">${gsym("tipp", 18)}<span>${esc(rat)}</span></div>` : ""}
       <div class="gc-fuss"><span>DWD-Gefahrenindizes für Wetterfühlige · Stand ${fmtStand(bp.stand)}</span></div></div>`;
   }
@@ -1594,9 +1664,9 @@ function lageText() {
     if (pg?.v != null) {
       const tr = pg.trend === 1 ? "steigend" : pg.trend === -1 ? "fallend" : "gleichbleibend";
       const al = pegelAlarm();
-      L.push(`Weser, Pegel ${CFG.pegel.name}: ${rnd(pg.v)} cm, ${tr}${pg.d24 != null ? ` (24 Std ${pg.d24 >= 0 ? "+" : "−"}${Math.abs(Math.round(pg.d24))} cm)` : ""}${al?.ueber ? `, ALARMSCHWELLE ${al.schwelle} cm ÜBERSCHRITTEN` : ""}${pg.wt ? `, Wasser ${nf(pg.wt.v, 1)} °C` : ""}`);
+      L.push(`${gewaesserName()}, Pegel ${pegelName()}: ${rnd(pg.v)} cm, ${tr}${pg.d24 != null ? ` (24 Std ${pg.d24 >= 0 ? "+" : "−"}${Math.abs(Math.round(pg.d24))} cm)` : ""}${al?.ueber ? `, ALARMSCHWELLE ${al.schwelle} cm ÜBERSCHRITTEN` : ""}${pg.wt ? `, Wasser ${nf(pg.wt.v, 1)} °C` : ""}`);
     }
-    const F = S.lage?.feuer; if (F && (F.wbi?.length || F.glfi?.length)) L.push(`Waldbrand/Grasland (${F.station}): WBI ${F.wbi?.[0] ?? "–"}, GLFI ${F.glfi?.[0] ?? "–"} von 5`);
+    const F = feuerDaten(); if (F && (F.wbi?.length || F.glfi?.length)) L.push(`Waldbrand/Grasland (${F.station}): WBI ${F.wbi?.[0] ?? "–"}, GLFI ${F.glfi?.[0] ?? "–"} von 5`);
   }
   if (S.settings.gesundheit) {
     const pz = pollenZeilen(); if (pz?.zeilen.length) { const heute = pz.zeilen.filter(r => r.lv[0] > 0); if (heute.length) L.push(`Pollen heute: ${heute.map(r => `${r.lab} ${POLLEN_STUFEN[r.v[0]][1]}`).join(", ")}`); }
@@ -1646,6 +1716,7 @@ function pushDaten() {
     ort: o.name, lat: o.lat, lon: o.lon, station: o.station || "",
     morgen: P.morgen, morgenZeit: P.morgenZeit, warnStufe: P.warnStufe, entwarnung: P.entwarnung, regen: P.regen,
     einsatz: P.einsatz, boen: st.schwellen.boen, frost: st.schwellen.frost, pegel: st.schwellen.pegel ?? null,
+    pegelStation: S.pegel?.id || S.settings.pegelWahl?.id || S.pegelAuto?.id || "", pegelName: S.pegel ? pegelName() : "",
     pollen: P.pollen, pollenRegion: st.pollenRegion, pollenArten: st.pollenArten
   };
 }
@@ -1757,6 +1828,7 @@ const ESEITEN = [
   { id: "karte", titel: "Radarkarte", farbe: "#0EA5C6", gruppe: 1 },
   { id: "app", titel: "App und Info", farbe: "#6B7280", gruppe: 2 }
 ];
+const eTitel = s => s.id === "einsatz" ? `${gewaesserName()} & Wald` : s.titel;
 function esymbol(id, farbe, gr = 30) {
   return `<span class="esym" style="background:${farbe};width:${gr}px;height:${gr}px"><svg width="${Math.round(gr * .62)}" height="${Math.round(gr * .62)}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ESYM[id]}</svg></span>`;
 }
@@ -1770,7 +1842,7 @@ function eZusammenfassung(id) {
       const t = []; if (P.morgen) t.push(`morgens ${P.morgenZeit}`); if (P.warnStufe) t.push(`Warnungen ab Stufe ${P.warnStufe}`); if (P.regen) t.push("Regen");
       return "An · " + (t.join(" · ") || "nur Test");
     }
-    case "einsatz": return st.extras ? `Böen ${st.schwellen.boen} km/h · Frost ${st.schwellen.frost} °C${st.schwellen.pegel ? ` · Pegel ${st.schwellen.pegel} cm` : ""}` : "Ausgeblendet";
+    case "einsatz": return st.extras ? `Pegel ${pegelName()} · Böen ${st.schwellen.boen} km/h · Frost ${st.schwellen.frost} °C${st.schwellen.pegel ? ` · Pegel ${st.schwellen.pegel} cm` : ""}` : "Ausgeblendet";
     case "gesundheit": return st.gesundheit ? `${(POLLEN_REGIONEN.find(r => r[0] === st.pollenRegion) || [0, "–"])[1]} · Biowetter ${st.bioZone}` : "Ausgeblendet";
     case "karte": return `${(KARTENSTILE[st.kartenStil || "farbig"] || "").replace(/ \(.*\)/, "")} · ${(st.cartoKey || CFG.cartoKey) ? "CARTO" : "OpenStreetMap"}${st.radarWolken ? " · Wolken" : ""}`;
     case "app": return `Version ${self.APP_VERSION || "–"}${S.lage?.stand ? ` · Daten vom ${S.lage.stand.slice(0, 6)}` : ""}`;
@@ -1780,13 +1852,13 @@ function eZusammenfassung(id) {
 function einstUebersicht() {
   let h = `<h1>Einstellungen</h1><p class="sub">Alles bleibt auf diesem Gerät. Kein Konto, keine Tracker.</p>`;
   [0, 1, 2].forEach(g => {
-    h += `<div class="mlist">` + ESEITEN.filter(s => s.gruppe === g).map(s => `<button class="mrow" data-a="eseite:${s.id}">${esymbol(s.id, s.farbe)}<span class="mt"><b>${s.titel}</b><span>${esc(eZusammenfassung(s.id))}</span></span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>`).join("") + `</div>`;
+    h += `<div class="mlist">` + ESEITEN.filter(s => s.gruppe === g).map(s => `<button class="mrow" data-a="eseite:${s.id}">${esymbol(s.id, s.farbe)}<span class="mt"><b>${esc(eTitel(s))}</b><span>${esc(eZusammenfassung(s.id))}</span></span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>`).join("") + `</div>`;
   });
   return h;
 }
 function einstKopf(s, text) {
   return `<div class="ekopf"><button class="ezur" data-a="eseite:" aria-label="Zurück zu den Einstellungen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Einstellungen</button></div>
-    <div class="etitel">${esymbol(s.id, s.farbe, 40)}<div><h1>${s.titel}</h1>${text ? `<p class="sub">${text}</p>` : ""}</div></div>`;
+    <div class="etitel">${esymbol(s.id, s.farbe, 40)}<div><h1>${esc(eTitel(s))}</h1>${text ? `<p class="sub">${text}</p>` : ""}</div></div>`;
 }
 const elabel = t => `<div class="elabel">${t}</div>`;
 function eOrteHtml(sw) {
@@ -1800,12 +1872,35 @@ function eOrteHtml(sw) {
   h += elabel("Standort") + `<div class="plist"><div class="setting"><div>Aktueller Standort<span>Zusätzlich das Wetter an deiner GPS-Position, nur auf dem Gerät verarbeitet</span></div>${sw(S.gps.on, "gps", "Aktueller Standort")}</div></div>`;
   return h + `<p class="ehinweis">Ort antippen zeigt sein Wetter. Mit dem Stift änderst du Namen, Position oder die feste DWD-Station.</p>`;
 }
+function pegelListeLaden() {
+  const p = aktOrt();
+  if (S.pegelListe?.pid === p.id && (S.pegelListe.liste || S.pegelListe.laedt)) return;
+  S.pegelListe = { pid: p.id, laedt: true };
+  pegelInDerNaehe(p, 80).then(l => { S.pegelListe = { pid: p.id, liste: l.slice(0, 6) }; })
+    .catch(() => { S.pegelListe = { pid: p.id, liste: [], fehler: true }; })
+    .finally(() => { if (S.tab === "orte" && S.eSeite === "einsatz") render(); });
+}
+function eMessstellenHtml() {
+  pegelListeLaden();
+  const L = S.pegelListe, wahl = S.settings.pegelWahl, auto = S.pegelAuto;
+  const haken = '<svg class="haken" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const zeile = (a, titel, unter, an) => `<button class="mrow wahl${an ? " an" : ""}" data-a="pwahl:${a}"><span class="mt"><b>${titel}</b><span>${unter}</span></span>${an ? haken : ""}</button>`;
+  let h = zeile("", "Automatisch", auto?.id ? `nächste Messstelle, zurzeit ${esc(schoen(auto.name))} (${esc(schoen(auto.water))}, ${nf(auto.km, 0)} km)` : "nächste Messstelle zum gewählten Ort", !wahl?.id);
+  if (L?.laedt) h += `<div class="mrow"><span class="mt"><span>Messstellen in der Nähe werden gesucht …</span></span></div>`;
+  else if (L?.liste?.length) h += L.liste.map(s => zeile(s.id, esc(schoen(s.name)), `${esc(schoen(s.water))} · ${nf(s.km, 0)} km${s.id === L.liste[0].id ? " · am nächsten" : ""}`, wahl?.id === s.id)).join("");
+  else if (L) h += `<div class="mrow"><span class="mt"><span>${L.fehler ? "PEGELONLINE gerade nicht erreichbar." : "Keine Messstelle im Umkreis von 80 km."}</span></span></div>`;
+  if (wahl?.id && !L?.liste?.some(s => s.id === wahl.id)) h += zeile(wahl.id, esc(schoen(wahl.name)), `${esc(schoen(wahl.water))} · fest gewählt`, true);
+  return elabel("Pegel-Messstelle") + `<div class="mlist">${h}</div>`;
+}
 function eEinsatzHtml(sw) {
-  const st = S.settings;
-  let h = `<div class="plist"><div class="setting"><div>Im Wetter-Tab anzeigen<span>Weser-Pegel mit Wassertemperatur, Waldbrand- und Graslandindex, Hinweise bei überschrittenen Schwellwerten</span></div>${sw(st.extras, "extras", "Weser und Wald anzeigen")}</div></div>`;
+  const st = S.settings, F = feuerDaten();
+  let h = `<div class="plist"><div class="setting"><div>Im Wetter-Tab anzeigen<span>Pegel mit Wassertemperatur, Waldbrand- und Graslandindex, Hinweise bei überschrittenen Schwellwerten</span></div>${sw(st.extras, "extras", "Gewässer und Wald anzeigen")}</div></div>`;
+  if (st.extras) h += eMessstellenHtml()
+    + `<p class="ehinweis">Daten von PEGELONLINE (Bundeswasserstraßen). Kleinere Flüsse sind dort nicht immer enthalten.</p>`
+    + elabel("Waldbrand und Grasland") + `<div class="plist"><div class="setting"><div>Messstation<span>${F?.station ? `Automatisch die nächste DWD-Station: ${esc(F.station)}${F.km != null ? ` (${nf(F.km, 0)} km)` : ""}` : "Wird mit den Daten der GitHub-Aktion bestimmt"}</span></div></div></div>`;
   if (st.extras) h += elabel("Schwellwerte") + `<div class="plist">
     <div class="thr"><div><label for="t-boen">Böen ab km/h</label><input type="number" id="t-boen" inputmode="numeric" value="${st.schwellen.boen}"></div><div><label for="t-frost">Frost ab °C</label><input type="number" id="t-frost" inputmode="decimal" value="${st.schwellen.frost}"></div><div><label for="t-sicht">Sicht unter m</label><input type="number" id="t-sicht" inputmode="numeric" value="${st.schwellen.sicht}"></div></div></div>`
-    + elabel("Pegel-Alarm") + `<div class="plist"><div class="thr two"><div><label for="t-pegel">Alarm ab cm</label><input type="number" id="t-pegel" inputmode="numeric" placeholder="aus" value="${st.schwellen.pegel ?? ""}"></div><div class="hintc">Pegel ${esc(CFG.pegel.name)}${S.pegel?.v != null ? `, aktuell ${rnd(S.pegel.v)} cm` : ""}. Leer lassen schaltet den Alarm ab.</div></div></div>
+    + elabel("Pegel-Alarm") + `<div class="plist"><div class="thr two"><div><label for="t-pegel">Alarm ab cm</label><input type="number" id="t-pegel" inputmode="numeric" placeholder="aus" value="${st.schwellen.pegel ?? ""}"></div><div class="hintc">Pegel ${esc(pegelName())}${S.pegel?.v != null ? `, aktuell ${rnd(S.pegel.v)} cm` : ""}. Leer lassen schaltet den Alarm ab.</div></div></div>
     <p class="ehinweis">Die Schwellwerte gelten auch für Push-Benachrichtigungen, wenn dort „Weser &amp; Wald“ eingeschaltet ist.</p>`;
   return h;
 }
@@ -1860,7 +1955,7 @@ function einstOeffnen(id) {
   if (id && !vorher) history.pushState({ einst: id }, "");
   render(); window.scrollTo(0, 0);
 }
-window.addEventListener("popstate", () => { if (S.eSeite) { S.eSeite = null; S.eRichtung = "zurueck"; render(); window.scrollTo(0, 0); } });
+window.addEventListener("popstate", () => { if (!$("#sheet").hidden) { schliesseSheet(); return; } if (S.eSeite) { S.eSeite = null; S.eRichtung = "zurueck"; render(); window.scrollTo(0, 0); } });
 function einstBinden(el) {
   const st = S.settings;
   const qs = $("#qsearch"); let to = 0;
@@ -3029,7 +3124,7 @@ document.addEventListener("click", async e => {
   const [a, arg] = el.dataset.a.split(/:(.*)/s);
   switch (a) {
     case "tab": S.tab = arg; S.eSeite = null; if (arg !== "radar") stopPlay(); render(); window.scrollTo(0, 0); break;
-    case "eseite": if (!arg && S.eSeite && history.state?.einst) history.back(); else einstOeffnen(arg); break;
+    case "eseite": if (!$("#sheet").hidden) schliesseSheet(); if (!arg && S.eSeite && history.state?.einst) history.back(); else einstOeffnen(arg); break;
     case "refresh": aktualisiere(); break;
     case "hour": {
       S.selHour = +arg;
@@ -3054,7 +3149,8 @@ document.addEventListener("click", async e => {
     case "place": S.curId = arg; S.eSeite = null; S.selHour = 0; S.mgSel = {}; S.openDay = null; speichere(); S.tab = "wetter"; render(); window.scrollTo(0, 0); aktualisiere(); break;
     case "edit": oeffneEdit(arg); break;
     case "add": ortHinzu(+arg); break;
-    case "close": schliesseSheet(); break;
+    case "close": if (history.state?.sheet) history.back(); else schliesseSheet(); break;
+    case "detail": zeigeDetail(arg); break;
     case "save": speichereEdit(); break;
     case "moveup": { const i = S.places.findIndex(x => x.id === ED.id); if (i > 0) { [S.places[i - 1], S.places[i]] = [S.places[i], S.places[i - 1]]; speichere(); } schliesseSheet(); render(); break; }
     case "delete": {
@@ -3083,6 +3179,11 @@ document.addEventListener("click", async e => {
     }
     case "extras": S.settings.extras = !S.settings.extras; speichere(); render(); if (S.settings.extras) { ladePegel().then(render).catch(() => { }); ladeLage().then(render).catch(() => { }); } break;
     case "teilen": teilen(); break;
+    case "pwahl": {
+      const s = arg ? (S.pegelListe?.liste || []).find(x => x.id === arg) || S.settings.pegelWahl : null;
+      S.settings.pegelWahl = s ? { id: s.id, name: s.name, water: s.water } : null;
+      speichere(); S.pegel = null; render(); ladePegel().catch(() => { }).finally(render); pushAktualisieren(); break;
+    }
     case "rwolken": S.settings.radarWolken = !S.settings.radarWolken; speichere(); render();
       if (S.settings.radarWolken && S.radar && RV.bounds) ladeWolken(aktOrt(), RV.bounds).then(wolkenZeigen).catch(() => { }); else wolkenZeigen(); break;
     case "push": if (pushEinst().on) pushAusschalten(); else pushEinschalten(); break;
