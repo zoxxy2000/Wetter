@@ -267,6 +267,9 @@ img.wi{display:block;flex:none;pointer-events:none}
 .osm-hell{filter:grayscale(.9) brightness(1.04) contrast(.9)}
 .osm-farbig{filter:saturate(.7) brightness(1.03)}
 .radar-bild{image-rendering:auto}
+.wolken-bild{image-rendering:auto}
+.legend .bar.stufen{display:flex;overflow:hidden;background:none}
+.legend .bar.stufen i{flex:1}
 .osm-dunkel{filter:invert(1) hue-rotate(180deg) grayscale(.6) brightness(.95) contrast(.95)}
 
 .rctl{display:flex;align-items:center;gap:12px;margin:12px 4px 4px}
@@ -635,7 +638,7 @@ const S = {
   places: store.get("places", null) || [{ id: "p" + Date.now().toString(36), ...CFG.start }],
   gps: store.get("gps", { on: false, lat: null, lon: null, label: "" }),
   curId: store.get("cur", null),
-  settings: Object.assign({ extras: true, notify: false, gesundheit: true, pollenRegion: 42, pollenArten: ["Hasel", "Erle", "Esche", "Birke", "Graeser", "Roggen", "Beifuss", "Ambrosia"], bioZone: "C", schwellen: { ...CFG.schwellen } }, store.get("settings", {})),
+  settings: Object.assign({ extras: true, notify: false, gesundheit: true, radarWolken: true, pollenRegion: 42, pollenArten: ["Hasel", "Erle", "Esche", "Birke", "Graeser", "Roggen", "Beifuss", "Ambrosia"], bioZone: "C", schwellen: { ...CFG.schwellen } }, store.get("settings", {})),
   lage: store.get("lage", null),
   raw: {}, daten: {}, radar: null, mgSel: {}, pegel: store.get("pegel", null),
   tab: "wetter", selHour: 0, openDay: null, busy: false, err: null,
@@ -1529,7 +1532,7 @@ function eZusammenfassung(id) {
     }
     case "einsatz": return st.extras ? `Böen ${st.schwellen.boen} km/h · Frost ${st.schwellen.frost} °C${st.schwellen.pegel ? ` · Pegel ${st.schwellen.pegel} cm` : ""}` : "Ausgeblendet";
     case "gesundheit": return st.gesundheit ? `${(POLLEN_REGIONEN.find(r => r[0] === st.pollenRegion) || [0, "–"])[1]} · Biowetter ${st.bioZone}` : "Ausgeblendet";
-    case "karte": return `${(KARTENSTILE[st.kartenStil || "farbig"] || "").replace(/ \(.*\)/, "")} · ${(st.cartoKey || CFG.cartoKey) ? "CARTO" : "OpenStreetMap"}`;
+    case "karte": return `${(KARTENSTILE[st.kartenStil || "farbig"] || "").replace(/ \(.*\)/, "")} · ${(st.cartoKey || CFG.cartoKey) ? "CARTO" : "OpenStreetMap"}${st.radarWolken ? " · Wolken" : ""}`;
     case "app": return `Version ${self.APP_VERSION || "–"}${S.lage?.stand ? ` · Daten vom ${S.lage.stand.slice(0, 6)}` : ""}`;
   }
   return "";
@@ -1577,9 +1580,9 @@ function eGesundheitHtml(sw) {
   h += elabel("Biowetter") + `<div class="plist"><div class="thr one"><div><label for="s-bio">Gebiet</label><select id="s-bio">${bioOpt}</select></div></div></div>`;
   return h;
 }
-function eKarteHtml() {
+function eKarteHtml(sw) {
   const st = S.settings;
-  return `<div class="plist"><div class="thr one"><div><label for="s-karte">Kartenstil</label><select id="s-karte">${Object.entries(KARTENSTILE).map(([k, n]) => `<option value="${k}"${(st.kartenStil || "farbig") === k ? " selected" : ""}>${n}</option>`).join("")}</select></div></div></div>`
+  return `<div class="plist"><div class="setting"><div>Wolken anzeigen<span>Bewölkung aus dem Wettermodell des DWD, weich unter den Regen gelegt</span></div>${sw(st.radarWolken, "rwolken", "Wolken anzeigen")}</div><div class="thr one"><div><label for="s-karte">Kartenstil</label><select id="s-karte">${Object.entries(KARTENSTILE).map(([k, n]) => `<option value="${k}"${(st.kartenStil || "farbig") === k ? " selected" : ""}>${n}</option>`).join("")}</select></div></div></div>`
     + elabel("Kartenanbieter") + `<div class="plist"><div class="thr one"><div><label for="t-carto">CARTO-Schlüssel (optional)</label><input type="text" id="t-carto" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="leer lassen für OpenStreetMap" value="${esc(st.cartoKey || "")}"></div></div></div>
     <p class="ehinweis">Ohne Schlüssel zeigt die App die OpenStreetMap-Karte. Mit einem kostenlosen Schlüssel von <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noopener">carto.com/basemaps/apikey</a> wird die ruhigere CARTO-Karte geladen. Der Schlüssel bleibt auf diesem Gerät.</p>`;
 }
@@ -1631,7 +1634,7 @@ function einstBinden(el) {
   const tp = $("#t-pegel"); if (tp) tp.addEventListener("change", () => { const v = parseFloat(tp.value); st.schwellen.pegel = isNaN(v) ? null : v; speichere(); toast(isNaN(v) ? "Pegel-Alarm aus." : `Pegel-Alarm ab ${v} cm.`); });
   pushFelderBinden();
   el.querySelectorAll("#t-boen,#t-frost,#t-pegel,#s-pollen").forEach(i => i.addEventListener("change", () => pushAktualisieren()));
-  const sk = $("#s-karte"); if (sk) sk.addEventListener("change", () => { st.kartenStil = sk.value; speichere(); if (RV.map && window.L) { RV.tiles?.remove(); RV.tiles = kachelLayer(window.L, RV.map).addTo(RV.map); } });
+  const sk = $("#s-karte"); if (sk) sk.addEventListener("change", () => { st.kartenStil = sk.value; speichere(); if (S.wolken) S.wolken.urls = {}; if (RV.map && window.L) { RV.tiles?.remove(); RV.tiles = kachelLayer(window.L, RV.map).addTo(RV.map); wolkenZeigen(); } });
   const sp = $("#s-pollen"); if (sp) sp.addEventListener("change", () => { st.pollenRegion = +sp.value; speichere(); });
   const sb = $("#s-bio"); if (sb) sb.addEventListener("change", () => { st.bioZone = sb.value; speichere(); });
 }
@@ -2280,7 +2283,7 @@ function renderRadar() {
       <div class="rctl"><button class="playbtn" id="rplay" data-a="rplay" aria-label="Abspielen"></button><div class="rtime"><b id="rtime">–</b><span id="rrel"></span></div></div>
       <input type="range" id="rslider" min="0" max="0" value="0" aria-label="Zeitpunkt">
       <div class="rticks"><span>−1 Std</span><span>jetzt</span><span>+2 Std</span></div>
-      <div class="legend"><span>leicht</span><span class="bar" style="background:linear-gradient(90deg,${RADAR_VERLAUF.slice(1).map(s => `rgb(${s[1]})`).join(",")})"></span><span>stark</span></div>
+      <div class="legend"><span>leicht</span><span class="bar stufen">${REGEN_STUFEN.slice(0, 10).map(([, c]) => `<i style="background:${c}"></i>`).join("")}</span><span>stark</span></div>
       <section class="blk"><h2>Regen an deinem Ort <small>nächste 2 Std</small></h2><div class="panel" id="rchart"></div></section>`;
     el.dataset.built = "1";
     $("#rslider").addEventListener("input", e => { stopPlay(); zeigeFrame(+e.target.value); });
@@ -2311,34 +2314,40 @@ function renderRadar() {
       let ni = 0; R.frames.forEach((f, i) => { if (f.t.getTime() <= now + 60e3) ni = i; });
       $("#rslider").max = R.frames.length - 1;
       if (RV.overlay) RV.overlay.remove();
+      if (RV.wolken) { RV.wolken.remove(); RV.wolken = null; }
       RV.overlay = L.imageOverlay(frameUrl(ni), [[RV.bounds.s, RV.bounds.w], [RV.bounds.n, RV.bounds.e]], { opacity: .9, interactive: false, className: "radar-bild" }).addTo(RV.map);
       zeigeFrame(ni); radarVorrechnen();
+      if (S.settings.radarWolken) ladeWolken(p, RV.bounds).then(() => wolkenZeigen()).catch(e => console.warn("Wolken", e));
     }
   }).catch(e => { $("#map").innerHTML = `<div class="radar-msg">${esc(e.message)} Prüfe die Internetverbindung.</div>`; });
 }
 function radarIndex(R, b, CW, CH) {
-  const idx = new Int32Array(CW * CH), yN = merc(b.n), yS = merc(b.s);
+  // pro Bildpunkt: linke obere Radarzelle und Anteile für weiche (bilineare) Übergänge
+  const N = CW * CH, i0 = new Int32Array(N).fill(-1), fx = new Float32Array(N), fy = new Float32Array(N), yN = merc(b.n), yS = merc(b.s);
   for (let j = 0; j < CH; j++) {
     const lat = imerc(yN + (yS - yN) * (j + .5) / CH);
     for (let i = 0; i < CW; i++) {
       const lon = b.w + (b.e - b.w) * (i + .5) / CW, f = Radolan(lat, lon);
-      const c = Math.round(f.c - R.off.c), r = Math.round(f.r - R.off.r);
-      idx[j * CW + i] = c >= 0 && r >= 0 && c < R.W && r < R.H ? r * R.W + c : -1;
+      const c = f.c - R.off.c, r = f.r - R.off.r, c0 = Math.floor(c), r0 = Math.floor(r), k = j * CW + i;
+      if (c0 < 0 || r0 < 0 || c0 + 1 >= R.W || r0 + 1 >= R.H) continue;
+      i0[k] = r0 * R.W + c0; fx[k] = c - c0; fy[k] = r - r0;
     }
   }
-  return idx;
+  return { i0, fx, fy };
 }
-/* Radar weich darstellen: Niederschlag als Feld glätten, dann stufenlos einfärben
-   und an den Rändern auslaufen lassen – wirkt wie Wolken statt wie Pixel. */
-const RADAR_VERLAUF = [[0.05, [170, 214, 245], 0], [0.3, [140, 198, 240], .55], [0.8, [86, 160, 228], .78], [2, [40, 110, 200], .86], [5, [250, 200, 20], .9], [10, [244, 140, 10], .92], [20, [226, 48, 36], .94], [50, [176, 24, 140], .95]];
-function radarFarbeWeich(mm) {
-  const V = RADAR_VERLAUF;
-  if (mm < V[0][0]) return null;
-  if (mm >= V[V.length - 1][0]) return [...V[V.length - 1][1], V[V.length - 1][2]];
-  let k = 1; while (mm >= V[k][0]) k++;
-  const [a0, c0, o0] = V[k - 1], [a1, c1, o1] = V[k];
-  const t = clamp((Math.log(mm) - Math.log(a0)) / (Math.log(a1) - Math.log(a0)), 0, 1), s = t * t * (3 - 2 * t);
-  return [lerp(c0[0], c1[0], s), lerp(c0[1], c1[1], s), lerp(c0[2], c1[2], s), lerp(o0, o1, s)];
+/* Regen wie in der WarnWetter-App: weiche Flächen in klaren Farbstufen je nach Stärke (mm/h) */
+const REGEN_STUFEN = [[0.1, "#3FF0FF"], [0.3, "#22D3A6"], [0.6, "#13A548"], [1.2, "#5DBA1F"], [2.5, "#C8DE00"], [5, "#FFEE00"], [10, "#FFC000"], [20, "#FF8800"], [40, "#FF4600"], [70, "#C8002A"], [100, "#A0009E"]];
+const RS_RGB = REGEN_STUFEN.map(([v, h]) => [Math.log(v), [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16))]);
+function regenFarbe(mm) {
+  if (mm < 0.06) return null;
+  const l = Math.log(mm), S_ = RS_RGB;
+  if (l <= S_[0][0]) return [...S_[0][1], clamp((mm - 0.06) / 0.04, 0, 1) * 200];   // weicher Außenrand
+  let k = 0; while (k < S_.length - 1 && l >= S_[k + 1][0]) k++;
+  if (k === S_.length - 1) return [...S_[k][1], 225];
+  // innerhalb einer Stufe flach, kurz vor der nächsten Stufe zügig überblenden (Konturenlook)
+  const t = (l - S_[k][0]) / (S_[k + 1][0] - S_[k][0]), s = clamp((t - .8) / .2, 0, 1), w = s * s * (3 - 2 * s);
+  const a = S_[k][1], b = S_[k + 1][1];
+  return [lerp(a[0], b[0], w), lerp(a[1], b[1], w), lerp(a[2], b[2], w), 215];
 }
 function boxBlur(src, tmp, w, h, r) {
   const n = 2 * r + 1;
@@ -2355,20 +2364,87 @@ function boxBlur(src, tmp, w, h, r) {
 }
 function frameUrl(i) {
   const R = S.radar; if (R.urls[i]) return R.urls[i];
-  const w = RV.CW, hh = RV.CH, d = R.frames[i].d, N = w * hh;
-  // Feld im log-Raum glätten: Kerne bleiben kräftig, Ränder laufen weich aus
+  const w = RV.CW, hh = RV.CH, d = R.frames[i].d, N = w * hh, { i0, fx, fy } = RV.idx, W = R.W;
+  const L = v => (v > 0 && v <= 30000 ? Math.log1p(v * 0.12) : 0);
   const f = new Float32Array(N), tmp = new Float32Array(N);
-  for (let k = 0; k < N; k++) { const ix = RV.idx[k]; if (ix < 0) continue; const v = d[ix]; if (v && v <= 30000) f[k] = Math.log1p(v * 0.12 * 4); }
-  boxBlur(f, tmp, w, hh, 3); boxBlur(f, tmp, w, hh, 2); boxBlur(f, tmp, w, hh, 2);
+  let max = 0;
+  for (let k = 0; k < N; k++) {
+    const a = i0[k]; if (a < 0) continue;
+    const x = fx[k], y = fy[k];
+    const v = (L(d[a]) * (1 - x) + L(d[a + 1]) * x) * (1 - y) + (L(d[a + W]) * (1 - x) + L(d[a + W + 1]) * x) * y;
+    f[k] = v; if (v > max) max = v;
+  }
+  boxBlur(f, tmp, w, hh, 1);                              // nur leicht glätten, damit leichter Regen sichtbar bleibt
+  R.maxMm = R.maxMm || []; R.maxMm[i] = Math.expm1(max);
   const c = document.createElement("canvas"); c.width = w; c.height = hh;
   const x = c.getContext("2d"), img = x.createImageData(w, hh), px = img.data;
   for (let k = 0; k < N; k++) {
-    if (f[k] <= 0.01) continue;
-    const col = radarFarbeWeich(Math.expm1(f[k]) / 4); if (!col) continue;
-    px[k * 4] = col[0]; px[k * 4 + 1] = col[1]; px[k * 4 + 2] = col[2]; px[k * 4 + 3] = Math.round(col[3] * 255);
+    if (f[k] <= 0.03) continue;
+    const col = regenFarbe(Math.expm1(f[k])); if (!col) continue;
+    px[k * 4] = col[0]; px[k * 4 + 1] = col[1]; px[k * 4 + 2] = col[2]; px[k * 4 + 3] = col[3];
   }
   x.putImageData(img, 0, 0);
   return (R.urls[i] = c.toDataURL());
+}
+/* ---------- Wolken auf der Radarkarte (Modell ICON des DWD über Open-Meteo) ---------- */
+const WOLKEN_N = 12, WOLKEN_PX = 160;
+let wolkenRauschen = null;
+function rauschen(n) {
+  // ruhige Wolkenstruktur (fraktales Rauschen), einmal pro Sitzung erzeugt
+  const r = (() => { let s = 1234567; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+  const out = new Float32Array(n * n);
+  for (let o = 0, amp = .55, g = 4; o < 5; o++, amp *= .5, g *= 2) {
+    const gr = new Float32Array((g + 1) * (g + 1)).map(() => r());
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const gx = x / n * g, gy = y / n * g, x0 = Math.floor(gx), y0 = Math.floor(gy), tx = gx - x0, ty = gy - y0;
+      const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty), q = (a, b) => gr[b * (g + 1) + a];
+      out[y * n + x] += amp * lerp(lerp(q(x0, y0), q(x0 + 1, y0), sx), lerp(q(x0, y0 + 1), q(x0 + 1, y0 + 1), sx), sy);
+    }
+  }
+  return out;
+}
+async function ladeWolken(p, b) {
+  if (S.wolken && S.wolken.pid === p.id && Date.now() - S.wolken.ts < 30 * 60e3) return S.wolken;
+  const lats = [], lons = [];
+  for (let j = 0; j < WOLKEN_N; j++) for (let i = 0; i < WOLKEN_N; i++) {
+    lats.push((b.n - (b.n - b.s) * j / (WOLKEN_N - 1)).toFixed(3)); lons.push((b.w + (b.e - b.w) * i / (WOLKEN_N - 1)).toFixed(3));
+  }
+  const j = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${lats.join(",")}&longitude=${lons.join(",")}&hourly=cloud_cover&past_hours=2&forecast_hours=4&timeformat=unixtime`, { timeout: 20000 });
+  const liste = Array.isArray(j) ? j : [j];
+  const zeiten = liste[0].hourly.time.map(t => t * 1000);
+  const felder = zeiten.map((_, h) => Float32Array.from(liste.map(o => (o.hourly.cloud_cover[h] ?? 0) / 100)));
+  S.wolken = { pid: p.id, zeiten, felder, ts: Date.now(), urls: {} };
+  return S.wolken;
+}
+function wolkenUrl(t) {
+  const Wk = S.wolken; if (!Wk) return null;
+  const z = Wk.zeiten; let h = 0; while (h < z.length - 2 && t >= z[h + 1]) h++;
+  const a = clamp((t - z[h]) / (z[h + 1] - z[h]), 0, 1), key = h + ":" + Math.round(a * 6);
+  if (Wk.urls[key]) return Wk.urls[key];
+  if (!wolkenRauschen) wolkenRauschen = rauschen(WOLKEN_PX);
+  const F0 = Wk.felder[h], F1 = Wk.felder[h + 1] || F0, n = WOLKEN_N, P = WOLKEN_PX, ai = Math.round(a * 6) / 6;
+  const dunkel = (S.settings.kartenStil || "farbig") === "dunkel";
+  const c = document.createElement("canvas"); c.width = P; c.height = P;
+  const x = c.getContext("2d"), img = x.createImageData(P, P), px = img.data;
+  for (let yy = 0; yy < P; yy++) for (let xx = 0; xx < P; xx++) {
+    const gx = xx / (P - 1) * (n - 1), gy = yy / (P - 1) * (n - 1), x0 = Math.min(n - 2, Math.floor(gx)), y0 = Math.min(n - 2, Math.floor(gy)), tx = gx - x0, ty = gy - y0;
+    const q = (F, i, j) => F[j * n + i];
+    const bi = F => lerp(lerp(q(F, x0, y0), q(F, x0 + 1, y0), tx), lerp(q(F, x0, y0 + 1), q(F, x0 + 1, y0 + 1), tx), ty);
+    const bed = lerp(bi(F0), bi(F1), ai), rn = wolkenRauschen[yy * P + xx];
+    const dichte = clamp(bed * 1.3 - .3 + (rn - .5) * .9 * (1 - Math.abs(bed - .55)), 0, 1);
+    if (dichte < .02) continue;
+    const k = (yy * P + xx) * 4, grau = dunkel ? lerp(150, 205, dichte) : lerp(242, 158, Math.pow(dichte, 1.3));
+    px[k] = grau; px[k + 1] = grau; px[k + 2] = Math.min(255, grau + 6); px[k + 3] = Math.pow(dichte, 1.1) * (dunkel ? 160 : 215);
+  }
+  x.putImageData(img, 0, 0);
+  return (Wk.urls[key] = c.toDataURL());
+}
+function wolkenZeigen() {
+  const R = S.radar; if (!R || !RV.map || !window.L) return;
+  if (!S.settings.radarWolken || !S.wolken || S.wolken.pid !== R.pid) { if (RV.wolken) { RV.wolken.remove(); RV.wolken = null; } return; }
+  const url = wolkenUrl(R.frames[RV.i]?.t.getTime() ?? Date.now()); if (!url) return;
+  if (!RV.wolken) { RV.wolken = window.L.imageOverlay(url, [[RV.bounds.s, RV.bounds.w], [RV.bounds.n, RV.bounds.e]], { interactive: false, className: "wolken-bild" }).addTo(RV.map); RV.overlay?.bringToFront(); }
+  else RV.wolken.setUrl(url);
 }
 function radarVorrechnen() {
   // übrige Bilder in Leerlaufzeiten vorbereiten, damit das Abspielen flüssig läuft
@@ -2381,9 +2457,11 @@ function radarVorrechnen() {
 function zeigeFrame(i) {
   const R = S.radar; if (!R || !RV.overlay) return;
   RV.i = i; RV.overlay.setUrl(frameUrl(i)); $("#rslider").value = i;
+  wolkenZeigen();
   const f = R.frames[i], diff = Math.round((f.t.getTime() - Date.now()) / 60e3);
   $("#rtime").textContent = `${hm(f.t)} Uhr`;
-  $("#rrel").textContent = Math.abs(diff) <= 3 ? "jetzt" : diff < 0 ? `vor ${-diff} Min, gemessen` : `in ${diff} Min, Vorhersage`;
+  const trocken = (R.maxMm?.[i] ?? 1) < 0.1 ? " · im Umkreis kein Niederschlag" : "";
+  $("#rrel").textContent = (Math.abs(diff) <= 3 ? "jetzt" : diff < 0 ? `vor ${-diff} Min, gemessen` : `in ${diff} Min, Vorhersage`) + trocken;
 }
 function setPlayIcon() {
   const b = $("#rplay"); if (!b) return;
@@ -2765,6 +2843,8 @@ document.addEventListener("click", async e => {
     }
     case "extras": S.settings.extras = !S.settings.extras; speichere(); render(); if (S.settings.extras) { ladePegel().then(render).catch(() => { }); ladeLage().then(render).catch(() => { }); } break;
     case "teilen": teilen(); break;
+    case "rwolken": S.settings.radarWolken = !S.settings.radarWolken; speichere(); render();
+      if (S.settings.radarWolken && S.radar && RV.bounds) ladeWolken(aktOrt(), RV.bounds).then(wolkenZeigen).catch(() => { }); else wolkenZeigen(); break;
     case "push": if (pushEinst().on) pushAusschalten(); else pushEinschalten(); break;
     case "pset": { const P = pushEinst(); P[arg] = !P[arg]; speichere(); render(); pushAktualisieren(); break; }
     case "ptest": pushTest(); break;
