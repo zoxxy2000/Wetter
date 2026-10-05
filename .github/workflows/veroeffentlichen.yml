@@ -8,6 +8,7 @@ name: Wetter-App veröffentlichen
 on:
   push:
     branches: [main]
+    paths-ignore: ["**.md"]   # reine Text-Änderungen (README) lösen nichts aus
   schedule:
     # GitHub rechnet in UTC und kennt keine Sommerzeit. Darum je zwei Termine;
     # der Schritt "Uhrzeit prüfen" lässt nur die Läufe zu, die nach deutscher Zeit passen.
@@ -22,9 +23,9 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
+# Keine "concurrency"-Gruppe: Die hat bei mehreren Uploads kurz hintereinander
+# wartende Läufe abgebrochen ("All jobs were cancelled"). Stattdessen wartet jeder
+# Lauf kurz und veröffentlicht nur, wenn er die neueste Änderung ist.
 
 jobs:
   veroeffentlichen:
@@ -49,27 +50,46 @@ jobs:
           fi
           echo "lauf=$lauf" >> "$GITHUB_OUTPUT"
 
+      - name: Auf weitere Uploads warten
+        id: aktuell
+        if: steps.zeit.outputs.lauf == 'true' && github.event_name == 'push'
+        run: |
+          # Werden mehrere Dateien einzeln hochgeladen, entsteht pro Datei ein Lauf.
+          # Nur der Lauf zur neuesten Änderung veröffentlicht, die anderen enden ruhig als „erfolgreich“.
+          sleep 75
+          neu=$(git ls-remote "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" refs/heads/main | cut -f1)
+          if [ -n "$neu" ] && [ "$neu" != "${{ github.sha }}" ]; then
+            echo "Es gibt eine neuere Änderung – dieser Lauf überspringt die Veröffentlichung."
+            echo "lauf=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "lauf=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v6
-        if: steps.zeit.outputs.lauf == 'true'
+        if: steps.zeit.outputs.lauf == 'true' && steps.aktuell.outputs.lauf != 'false'
 
       - name: DWD-Zusatzdaten holen
-        if: steps.zeit.outputs.lauf == 'true'
+        if: steps.zeit.outputs.lauf == 'true' && steps.aktuell.outputs.lauf != 'false'
         run: python3 tools/hole_daten.py   # Python ist auf dem Runner schon vorhanden
         continue-on-error: true
 
       - name: Seite zusammenstellen
-        if: steps.zeit.outputs.lauf == 'true'
+        if: steps.zeit.outputs.lauf == 'true' && steps.aktuell.outputs.lauf != 'false'
         run: |
           mkdir -p _site daten
-          cp index.html sw.js version.js manifest.webmanifest icon-*.png badge-96.png _site/
-          cp -r icons daten _site/
-          [ -f CNAME ] && cp CNAME _site/ || true
+          # Dateien einzeln kopieren: fehlt eine, wird trotzdem veröffentlicht (mit Hinweis im Protokoll)
+          for f in index.html sw.js version.js manifest.webmanifest icon-192.png icon-512.png icon-maskable-512.png badge-96.png CNAME; do
+            if [ -f "$f" ]; then cp "$f" _site/; else echo "::warning::Datei fehlt im Repository: $f"; fi
+          done
+          [ -d icons ] && cp -r icons _site/ || echo "::warning::Ordner icons fehlt"
+          cp -r daten _site/
+          echo "Veröffentlicht wird Version: $(grep -o 'APP_VERSION = "[^"]*"' version.js)"
 
       - uses: actions/upload-pages-artifact@v5
-        if: steps.zeit.outputs.lauf == 'true'
+        if: steps.zeit.outputs.lauf == 'true' && steps.aktuell.outputs.lauf != 'false'
         with:
           path: _site
 
       - id: deploy
-        if: steps.zeit.outputs.lauf == 'true'
+        if: steps.zeit.outputs.lauf == 'true' && steps.aktuell.outputs.lauf != 'false'
         uses: actions/deploy-pages@v5
