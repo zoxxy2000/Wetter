@@ -412,6 +412,8 @@ const CFG = {
   schwellen: { boen: 60, frost: 0, sicht: 1000, pegel: null },   // km/h, °C, m, cm (Pegel: null = aus)
   refreshMin: 10,
   radarKm: 100,
+  // Push-Server (PHP bei Hetzner). Adresse der api.php eintragen, z. B. "https://push.deinedomain.de/api.php". Leer = ohne Push.
+  push: { server: "https://push.familiebeutler.com/api.php" },
   cartoKey: "",   // optional; besser in der App unter Orte → Einstellungen eintragen (bleibt dann privat)
   links: {
     warnungen: "https://www.wettergefahren.de",
@@ -1350,6 +1352,126 @@ async function teilen() {
 /* =====================================================================
    Einstellungen
    ===================================================================== */
+/* =====================================================================
+   Push-Benachrichtigungen (über eigenen Server bei Hetzner)
+   ===================================================================== */
+const PUSH_ZEITEN = ["06:00", "06:30", "07:00", "07:15", "07:30", "08:00", "08:30", "09:00"];
+const istIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const istInstalliert = () => !!(navigator.standalone || matchMedia("(display-mode: standalone)").matches);
+const pushMoeglich = () => !!CFG.push.server && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+function pushEinst() {
+  return S.settings.push = Object.assign({ on: false, ortId: null, morgen: true, morgenZeit: "07:15", warnStufe: 2, entwarnung: true, regen: false, einsatz: S.settings.extras, pollen: S.settings.gesundheit }, S.settings.push || {});
+}
+function b64uZuBytes(s) { const p = "=".repeat((4 - s.length % 4) % 4), b = atob((s + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(b, c => c.charCodeAt(0)); }
+async function pushAnfrage(daten) {
+  const r = await fetch(CFG.push.server, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(daten) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.fehler || `Server antwortet ${r.status}`);
+  return j;
+}
+function pushOrt() {
+  const P = pushEinst(), orte = S.places;
+  return orte.find(o => o.id === P.ortId) || orte.find(o => o.id === S.curId) || orte[0];
+}
+function pushDaten() {
+  const P = pushEinst(), o = pushOrt(), st = S.settings;
+  return {
+    ort: o.name, lat: o.lat, lon: o.lon, station: o.station || "",
+    morgen: P.morgen, morgenZeit: P.morgenZeit, warnStufe: P.warnStufe, entwarnung: P.entwarnung, regen: P.regen,
+    einsatz: P.einsatz, boen: st.schwellen.boen, frost: st.schwellen.frost, pegel: st.schwellen.pegel ?? null,
+    pollen: P.pollen, pollenRegion: st.pollenRegion, pollenArten: st.pollenArten
+  };
+}
+async function pushAbo(neu) {
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub && neu) {
+    const { schluessel } = await (await fetch(CFG.push.server, { cache: "no-store" })).json();
+    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uZuBytes(schluessel) });
+  }
+  return sub;
+}
+async function pushEinschalten() {
+  if (!pushMoeglich()) return;
+  if (istIOS && !istInstalliert()) { toast("Auf dem iPhone zuerst über Teilen → „Zum Home-Bildschirm“ installieren."); return; }
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") { toast("Benachrichtigungen wurden nicht erlaubt. Das lässt sich in den Systemeinstellungen ändern."); return; }
+  try {
+    const sub = await pushAbo(true);
+    await pushAnfrage({ aktion: "anmelden", abo: sub.toJSON(), einstellungen: pushDaten() });
+    const P = pushEinst(); P.on = true; P.ortId = pushOrt().id; P.sync = Date.now();
+    S.settings.notify = false; speichere(); render();
+    toast("Push-Benachrichtigungen sind aktiv.");
+  } catch (e) { console.warn(e); toast("Anmeldung fehlgeschlagen: " + e.message); }
+}
+async function pushAusschalten() {
+  const P = pushEinst(); P.on = false; speichere(); render();
+  try { const sub = await pushAbo(false); if (sub) { await pushAnfrage({ aktion: "abmelden", endpoint: sub.endpoint }).catch(() => { }); await sub.unsubscribe(); } } catch (e) { console.warn(e); }
+  toast("Push-Benachrichtigungen ausgeschaltet.");
+}
+let pushTimer = 0;
+function pushAktualisieren(sofort) {
+  // Einstellungen zum Server übertragen (gebündelt, damit nicht jeder Klick eine Anfrage auslöst)
+  const P = pushEinst(); if (!P.on || !pushMoeglich()) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(async () => {
+    try {
+      const sub = await pushAbo(true);
+      await pushAnfrage({ aktion: "anmelden", abo: sub.toJSON(), einstellungen: pushDaten() });
+      P.sync = Date.now(); speichere();
+    } catch (e) { console.warn("Push-Abgleich", e); }
+  }, sofort ? 0 : 900);
+}
+async function pushTest() {
+  try { const sub = await pushAbo(false); if (!sub) throw new Error("Nicht angemeldet"); const j = await pushAnfrage({ aktion: "test", endpoint: sub.endpoint }); toast(j.ok ? "Test gesendet, kommt gleich an." : "Der Push-Dienst hat abgelehnt."); }
+  catch (e) { toast("Test fehlgeschlagen: " + e.message); }
+}
+function pushHtml(sw) {
+  if (!CFG.push.server) return `<section class="blk"><h2>Benachrichtigungen</h2><div class="plist">
+    <div class="setting"><div>Mitteilung bei neuer Warnung<span>Meldet sich, wenn der DWD warnt, solange die App im Hintergrund geöffnet ist. Für echte Push-Nachrichten muss der Push-Server eingerichtet werden (siehe Anleitung).</span></div>${sw(S.settings.notify, "notify", "Mitteilungen")}</div></div></section>`;
+  const P = pushEinst();
+  if (!pushMoeglich()) return `<section class="blk"><h2>Benachrichtigungen</h2><div class="plist"><div class="setting"><div>Push nicht verfügbar<span>Dieser Browser unterstützt keine Push-Nachrichten.</span></div></div></div></section>`;
+  if (istIOS && !istInstalliert()) return `<section class="blk"><h2>Benachrichtigungen</h2><div class="plist"><div class="setting"><div>Erst installieren<span>Auf iPhone und iPad gibt es Push-Nachrichten nur für installierte Web-Apps: in Safari auf Teilen tippen, dann „Zum Home-Bildschirm“. Danach die App vom Home-Bildschirm öffnen und hier einschalten.</span></div></div></div></section>`;
+  const sel = (id, opts, wert) => `<select id="${id}">${opts.map(([v, n]) => `<option value="${v}"${String(v) === String(wert) ? " selected" : ""}>${esc(n)}</option>`).join("")}</select>`;
+  const orte = S.places.map(o => [o.id, o.name]);
+  let h = `<section class="blk"><h2>Benachrichtigungen</h2><div class="plist">
+    <div class="setting"><div>Push-Benachrichtigungen<span>Auch wenn die App geschlossen ist. Gespeichert wird nur eine technische Zustelladresse, keine Mailadresse.</span></div>${sw(P.on, "push", "Push-Benachrichtigungen")}</div>`;
+  if (P.on) h += `
+    <div class="thr one"><div><label for="p-ort">Für diesen Ort</label>${sel("p-ort", orte, pushOrt().id)}</div></div>
+    <div class="setting"><div>Morgenübersicht<span>Temperaturen, Regen, Böen, Warnungen${P.einsatz ? ", Pegel, WBI/GLFI" : ""}${P.pollen ? ", Pollen" : ""}</span></div>${sw(P.morgen, "pset:morgen", "Morgenübersicht")}</div>
+    ${P.morgen ? `<div class="thr one"><div><label for="p-zeit">Uhrzeit</label>${sel("p-zeit", PUSH_ZEITEN.map(z => [z, z + " Uhr"]), P.morgenZeit)}</div></div>` : ""}
+    <div class="thr one"><div><label for="p-warn">Amtliche Warnungen</label>${sel("p-warn", [[1, "Alle Warnungen (ab Stufe 1)"], [2, "Ab markantem Wetter (Stufe 2)"], [3, "Nur Unwetter (ab Stufe 3)"], [0, "Keine Warnungen"]], P.warnStufe)}</div></div>
+    ${P.warnStufe > 0 ? `<div class="setting"><div>Entwarnungen<span>Meldung, wenn eine Warnung aufgehoben ist</span></div>${sw(P.entwarnung, "pset:entwarnung", "Entwarnungen")}</div>` : ""}
+    <div class="setting"><div>Regen kommt<span>Hinweis etwa 10 bis 45 Minuten vorher, laut Radar, höchstens alle 3 Stunden</span></div>${sw(P.regen, "pset:regen", "Regen-Hinweis")}</div>
+    <div class="setting"><div>Für den Einsatz<span>Pegel-Alarm, Böen und Frost über deinen Schwellwerten aus „Für den Einsatz“</span></div>${sw(P.einsatz, "pset:einsatz", "Einsatz-Hinweise")}</div>
+    <div class="setting"><div>Pollen in der Morgenübersicht<span>Deine gewählten Pollenarten und Region</span></div>${sw(P.pollen, "pset:pollen", "Pollen")}</div>
+    <div class="setting"><div>Test<span>Schickt sofort eine Probe-Benachrichtigung an dieses Gerät</span></div><button class="btn ghost" data-a="ptest">Senden</button></div>`;
+  return h + `</div></section>`;
+}
+function pushFelderBinden() {
+  const P = pushEinst();
+  const an = (id, f) => { const el = $("#" + id); if (el) el.addEventListener("change", () => { f(el.value); speichere(); pushAktualisieren(); }); };
+  an("p-ort", v => P.ortId = v);
+  an("p-zeit", v => P.morgenZeit = v);
+  an("p-warn", v => { P.warnStufe = +v; render(); });
+}
+function pushStart() {
+  if (!pushMoeglich()) return;
+  navigator.serviceWorker.ready.then(reg => reg.active?.postMessage({ typ: "pushServer", url: CFG.push.server })).catch(() => { });
+  const P = pushEinst();
+  // einmal am Tag abgleichen: hält das Abo frisch und überträgt geänderte Orte
+  if (P.on && Date.now() - (P.sync || 0) > 20 * 3600e3) pushAktualisieren(true);
+}
+/* Navigation per Adresse (#warnungen, #radar …), z. B. aus einer Benachrichtigung */
+function tabAusHash() {
+  const t = location.hash.replace("#", "");
+  if (!["wetter", "radar", "historisch", "warnungen", "orte"].includes(t)) return;
+  history.replaceState(null, "", location.pathname + location.search);
+  if (S.tab !== t) { S.tab = t; render(); window.scrollTo(0, 0); }
+}
+window.addEventListener("hashchange", tabAusHash);
+if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if (e.data?.typ === "oeffnen") { location.hash = e.data.hash || ""; tabAusHash(); } });
+
 function renderOrte() {
   const el = $("#tab-orte"), orte = alleOrte(), cur = aktOrt(), st = S.settings;
   const sw = (on, a, lab) => `<button class="switch" role="switch" aria-checked="${!!on}" data-a="${a}" aria-label="${lab}"></button>`;
@@ -1363,8 +1485,7 @@ function renderOrte() {
   h += `<div class="setting"><div>Aktueller Standort<span>Zusätzlich das Wetter an deiner GPS-Position, nur auf dem Gerät verarbeitet</span></div>${sw(S.gps.on, "gps", "Aktueller Standort")}</div></div>
   <div class="search"><input type="search" id="qsearch" placeholder="Ort in Deutschland hinzufügen" autocomplete="off" aria-label="Ort suchen"><div class="results" id="qres" hidden></div></div></section>`;
   // Warnungen
-  h += `<section class="blk"><h2>Warnungen</h2><div class="plist">
-    <div class="setting"><div>Mitteilung bei neuer Warnung<span>Meldet sich, wenn der DWD für einen deiner Orte warnt. Funktioniert, solange die App im Hintergrund geöffnet ist.</span></div>${sw(st.notify, "notify", "Mitteilungen")}</div></div></section>`;
+  h += pushHtml(sw);
   // Einsatz
   h += `<section class="blk"><h2>Für den Einsatz</h2><div class="plist">
     <div class="setting"><div>Einsatz-Bereich anzeigen<span>Weser-Pegel mit Wassertemperatur, Waldbrand- und Graslandindex, Schwellwerte</span></div>${sw(st.extras, "extras", "Einsatz-Bereich")}</div>
@@ -1406,6 +1527,9 @@ function renderOrte() {
   });
   ["boen", "frost", "sicht"].forEach(k => { const i = $("#t-" + k); if (i) i.addEventListener("change", () => { const v = parseFloat(i.value); if (!isNaN(v)) { st.schwellen[k] = v; speichere(); } }); });
   const tp = $("#t-pegel"); if (tp) tp.addEventListener("change", () => { const v = parseFloat(tp.value); st.schwellen.pegel = isNaN(v) ? null : v; speichere(); toast(isNaN(v) ? "Pegel-Alarm aus." : `Pegel-Alarm ab ${v} cm.`); });
+  pushFelderBinden();
+  // Änderungen an Schwellwerten und Pollen auch zum Push-Server übertragen
+  el.querySelectorAll("#t-boen,#t-frost,#t-pegel,#s-pollen").forEach(i => i.addEventListener("change", () => pushAktualisieren()));
   const sk = $("#s-karte"); if (sk) sk.addEventListener("change", () => { st.kartenStil = sk.value; speichere(); if (RV.map && window.L) { RV.tiles?.remove(); RV.tiles = kachelLayer(window.L, RV.map).addTo(RV.map); } });
   const sp = $("#s-pollen"); if (sp) sp.addEventListener("change", () => { st.pollenRegion = +sp.value; speichere(); });
   const sb = $("#s-bio"); if (sb) sb.addEventListener("change", () => { st.bioZone = sb.value; speichere(); });
@@ -2539,11 +2663,14 @@ document.addEventListener("click", async e => {
     }
     case "extras": S.settings.extras = !S.settings.extras; speichere(); render(); if (S.settings.extras) { ladePegel().then(render).catch(() => { }); ladeLage().then(render).catch(() => { }); } break;
     case "teilen": teilen(); break;
+    case "push": if (pushEinst().on) pushAusschalten(); else pushEinschalten(); break;
+    case "pset": { const P = pushEinst(); P[arg] = !P[arg]; speichere(); render(); pushAktualisieren(); break; }
+    case "ptest": pushTest(); break;
     case "ges": S.settings.gesundheit = !S.settings.gesundheit; speichere(); render(); if (S.settings.gesundheit) ladeLage(true).then(render).catch(() => { }); break;
     case "part": {
       const a = S.settings.pollenArten, i = a.indexOf(arg);
       if (i >= 0) a.splice(i, 1); else a.push(arg);
-      speichere(); el.classList.toggle("on", i < 0); el.setAttribute("aria-pressed", String(i < 0)); break;
+      speichere(); pushAktualisieren(); el.classList.toggle("on", i < 0); el.setAttribute("aria-pressed", String(i < 0)); break;
     }
     case "neuladen": if (S.lage) S.lage.ts = 0; toast("Wird neu geladen …"); aktualisiere(); break;
     case "install": if (S.installEvt) { S.installEvt.prompt(); S.installEvt = null; render(); } break;
@@ -2593,6 +2720,8 @@ if (!S.settings.migr12) {
   S.settings.migr12 = true; speichere();
 }
 ausCacheLaden();
+tabAusHash();
+pushStart();
 render();
 aktualisiere();
 </script>
