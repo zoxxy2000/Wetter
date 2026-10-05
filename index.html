@@ -205,7 +205,7 @@ img.wi{display:block;flex:none;pointer-events:none}
 .gk-ic{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--c)}
 .gk-val{font:600 24px/1.1 var(--font);margin-top:10px;position:relative}
 .gk-val small{font:500 14px var(--font);color:var(--muted);margin-left:4px}
-.gk-sub{font-size:12.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative}
+.gk-sub{font-size:12.5px;line-height:1.3;color:var(--muted);margin-top:2px;position:relative;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em}
 .gk-bar{display:flex;gap:4px;margin-top:10px;position:relative}
 .gk-bar i{flex:1;height:4px;border-radius:2px;background:var(--soft)}
 .gk-bar i.an{background:var(--c)}
@@ -219,7 +219,7 @@ img.wi{display:block;flex:none;pointer-events:none}
 .gleer{display:flex;align-items:center;gap:12px;padding:4px 0}
 .gleer-ic{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:color-mix(in srgb,#27AE60 15%,transparent);color:#27AE60;flex:none}
 .gleer b{display:block;font:600 18px var(--font)}
-.gleer span{display:block;font-size:13.5px;color:var(--muted);margin-top:1px}
+.gleer>div>span{display:block;font-size:13.5px;color:var(--muted);margin-top:1px}
 .gpt-kopf,.gpt-zeile{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;align-items:center;gap:6px}
 .gpt-kopf span{font-size:11.5px;color:var(--muted);text-align:center}
 .gpt-zeile{padding:8px 0;border-top:1px solid var(--line)}
@@ -1379,6 +1379,8 @@ function fmtStand(s) {
   return m ? `${m[3]}.${m[2]}., ${m[4]} Uhr` : (s || "–");
 }
 const pollenStufe = lv => lv <= 0 ? 0 : lv <= 2 ? 1 : lv <= 4 ? 2 : 3;
+const BIO_KACHEL = [[/allgemeine Befinden/, "Befinden"], [/hypotone|hypertone|Kreislauf/, "Kreislauf"], [/rheum/, "Rheuma"], [/Asthma/, "Asthma"], [/Thermische/, "Temperatur"]];
+const bioKurz = n => (BIO_KACHEL.find(([r]) => r.test(n)) || [0, bioName(n)])[1];
 function bioStufe(v) { return /hoch|stark/i.test(v) ? 3 : /mäßig|mittel/i.test(v) ? 2 : /gering/i.test(v) ? 1 : 0; }
 function gKachel(sym, lab, wert, unter, stufe, max = 4) {
   return `<div class="gk" style="--c:${G_FARBEN[stufe]}"><div class="gk-top"><span class="gk-ic">${gsym(sym, 16)}</span>${lab}</div>
@@ -1415,7 +1417,7 @@ function gesundheitHtml(d) {
   if (bp?.out.length) {
     const rel = bp.out[0][1].effekte.filter(([, v]) => bioRelevant(v)).sort((a, b) => bioStufe(b[1]) - bioStufe(a[1]));
     const st = rel.reduce((m, [, v]) => Math.max(m, bioStufe(v)), 0);
-    kacheln.push(gKachel("bio", "Biowetter", rel.length ? ["Ruhig", "Gering", "Mäßig", "Stark"][st] : "Ruhig", rel.length ? esc(rel.slice(0, 2).map(([n]) => bioName(n).split(" (")[0].split(",")[0]).join(", ")) : "kaum Wettereinfluss", st, 3));
+    kacheln.push(gKachel("bio", "Biowetter", rel.length ? ["Ruhig", "Gering", "Mäßig", "Stark"][st] : "Ruhig", rel.length ? esc([...new Set(rel.map(([n]) => bioKurz(n)))].slice(0, 3).join(", ")) : "kaum Wettereinfluss", st, 3));
   }
   // ---- UV
   if (t0?.uv != null) { const u = t0.uv, st = u < 3 ? 0 : u < 6 ? 1 : u < 8 ? 2 : u < 11 ? 3 : 4; kacheln.push(gKachel("uv", "UV-Index", `${nf(u, 0)} <small>${uvText(u)}</small>`, "Tageshöchstwert", st)); }
