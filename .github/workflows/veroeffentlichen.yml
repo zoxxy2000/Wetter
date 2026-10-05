@@ -61,7 +61,7 @@ jobs:
         if: steps.zeit.outputs.lauf == 'true'
         run: |
           mkdir -p _site daten
-          cp index.html sw.js version.js manifest.webmanifest icon-*.png _site/
+          cp index.html sw.js version.js manifest.webmanifest icon-*.png badge-96.png _site/
           cp -r icons daten _site/
           [ -f CNAME ] && cp CNAME _site/ || true
 
