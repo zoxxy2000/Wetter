@@ -202,6 +202,17 @@ img.wi{display:block;flex:none;pointer-events:none}
 .mrow.wahl{padding:11px 14px}
 .mrow.wahl .haken{color:var(--rain);flex:none}
 .mrow.wahl.an b{color:var(--rain)}
+
+.gk.breit{grid-column:1/-1}
+.gk-lab{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:16px}
+.gk-teile{display:grid;grid-template-columns:1fr 1fr;gap:14px;position:relative;margin-top:2px}
+.gk-teil{min-width:0}
+.gk-teil+.gk-teil{border-left:1px solid color-mix(in srgb,var(--ink) 10%,transparent);padding-left:14px}
+.gk-tt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:600 11.5px var(--font);letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin-top:10px}
+.gk.breit .gk-val{margin-top:4px}
+.gk.breit .gk-sub{min-height:0;-webkit-line-clamp:1}
+.gk.breit.wasser::after{height:38%;background-size:150px 100%}
+.gk.breit.feuer::after{height:58%}
 /* ---------- Kacheln als Einstieg, Details im Blatt ---------- */
 .gk[role=button]{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s ease}
 .gk[role=button]:active{transform:scale(.97)}
@@ -1412,6 +1423,11 @@ function uvKarte(t0) {
     <div class="gtipp">${gsym("tipp", 18)}<span>${UV_RAT[st]}</span></div>
     <div class="gc-fuss"><span>Open-Meteo, stündliche Vorhersage</span></div></div>`;
 }
+function wwBreit({ thema, farbe, sym, lab, teile, key }) {
+  return `<div class="gk ww breit ${thema}" style="--c:${farbe}" role="button" tabindex="0" data-a="detail:${key}"><span class="gk-mehr">›</span>
+    <div class="gk-top"><span class="gk-ic">${wsym(sym)}</span><span class="gk-lab">${lab}</span></div>
+    <div class="gk-teile">${teile.map(t => `<div class="gk-teil"><div class="gk-tt">${t.titel}</div><div class="gk-val">${t.wert}</div><div class="gk-sub">${t.unter}</div><div class="gk-bar${t.balken ? "" : " leer"}" aria-hidden="true">${t.balken || "<i></i>"}</div></div>`).join("")}</div></div>`;
+}
 function wwKachel({ thema, farbe, sym, lab, wert, unter, balken, key }) {
   return `<div class="gk ww ${thema}" style="--c:${farbe}" role="button" tabindex="0" data-a="detail:${key}"><span class="gk-mehr">›</span><div class="gk-top"><span class="gk-ic">${wsym(sym)}</span>${lab}</div>
     <div class="gk-val">${wert}</div><div class="gk-sub">${unter}</div>
@@ -1446,16 +1462,24 @@ function extrasHtml() {
   const pfeil = pg ? (pg.trend === 1 ? "↗" : pg.trend === -1 ? "↘" : "→") : "";
   const zs = pg ? ({ low: "niedrig", normal: "normal", high: "hoch" }[pg.state] || "") : "";
   const pegelFarbe = al?.ueber || pg?.state === "high" ? "#D7261E" : pg?.state === "low" ? "#E2B400" : "#2F80ED";
-  // ---- Kacheln
-  if (pg?.v != null) {
-    const balken = al ? Array.from({ length: 5 }, (_, i) => `<i style="${(i + 1) / 5 <= Math.min(1, pg.v / al.schwelle) + .001 ? `background:${al.ueber ? "#D7261E" : "#2F80ED"}` : ""}"></i>`).join("") : null;
-    kacheln.push(wwKachel({ thema: "wasser", farbe: pegelFarbe, sym: "welle", lab: `Pegel ${esc(pegelName())}`, wert: `${rnd(pg.v)} <small>cm</small>`, unter: `${pfeil} ${tr}${zs ? " · " + zs : ""}`, balken, key: "pegel" }));
-  } else kacheln.push(wwKachel({ thema: "wasser", farbe: "#2F80ED", sym: "welle", lab: `Pegel ${esc(pegelName())}`, wert: "–", unter: S.pegelKeine ? "keine Messstelle in der Nähe" : S.pegelErr ? "nicht erreichbar" : "wird geladen …", key: "pegel" }));
-  kacheln.push(wwKachel({ thema: "wasser", farbe: "#0EA5C6", sym: "tropfen", lab: "Wasser", wert: pg?.wt ? `${nf(pg.wt.v, 1)} <small>°C</small>` : "–", unter: pg?.wt ? (pg.wt.km > 0.5 ? `${esc(schoen(pg.wt.name))} · ${nf(pg.wt.km, 0)} km` : "am Pegel gemessen") : "keine Messung in der Nähe", key: "pegel" }));
-  const hi = F ? feuerHeuteIndex(F) : 0, wbi = F?.wbi?.[hi], glfi = F?.glfi?.[hi];
-  const feuerUnter = v => v ? `${FEUER_GEFAHR[v]}${F?.station ? " · " + esc(F.station) : ""}` : (F ? "keine Werte (Saison)" : "nicht verfügbar");
-  kacheln.push(wwKachel({ thema: "feuer", farbe: FEUER_FARBEN[wbi || 0], sym: "baum", lab: "Waldbrand", wert: wbi ? `${wbi} <small>von 5</small>` : "–", unter: feuerUnter(wbi), balken: wbi ? feuerBalken(wbi) : null, key: "feuer" }));
-  kacheln.push(wwKachel({ thema: "feuer", farbe: FEUER_FARBEN[glfi || 0], sym: "gras", lab: "Grasland", wert: glfi ? `${glfi} <small>von 5</small>` : "–", unter: feuerUnter(glfi), balken: glfi ? feuerBalken(glfi) : null, key: "feuer" }));
+  // ---- zwei breite Kacheln: Wasser und Feuer (je eine Detailkarte)
+  const pegelBalken = al ? Array.from({ length: 5 }, (_, i) => `<i style="${(i + 1) / 5 <= Math.min(1, pg.v / al.schwelle) + .001 ? `background:${al.ueber ? "#D7261E" : "#2F80ED"}` : ""}"></i>`).join("") : "";
+  kacheln.push(wwBreit({
+    thema: "wasser", farbe: pegelFarbe, sym: "welle", key: "pegel", lab: `${esc(gewaesserName())} · Pegel ${esc(pegelName())}`,
+    teile: [
+      pg?.v != null
+        ? { titel: "Wasserstand", wert: `${rnd(pg.v)} <small>cm</small>`, unter: `${pfeil} ${tr}${zs ? " · " + zs : ""}`, balken: pegelBalken }
+        : { titel: "Wasserstand", wert: "–", unter: S.pegelKeine ? "keine Messstelle in der Nähe" : S.pegelErr ? "nicht erreichbar" : "wird geladen …" },
+      { titel: "Wassertemperatur", wert: pg?.wt ? `${nf(pg.wt.v, 1)} <small>°C</small>` : "–", unter: pg?.wt ? (pg.wt.km > 0.5 ? `${esc(schoen(pg.wt.name))} · ${nf(pg.wt.km, 0)} km` : "am Pegel gemessen") : "keine Messung in der Nähe" }
+    ]
+  }));
+  const hi = F ? feuerHeuteIndex(F) : 0, wbi = F?.wbi?.[hi], glfi = F?.glfi?.[hi], fMax = Math.max(wbi || 0, glfi || 0);
+  const feuerTeil = (titel, v) => ({ titel, wert: v ? `${v} <small>von 5</small>` : "–", unter: v ? FEUER_GEFAHR[v] : (F ? "keine Werte (Saison)" : "nicht verfügbar"), balken: v ? feuerBalken(v) : "" });
+  kacheln.push(wwBreit({
+    thema: "feuer", farbe: FEUER_FARBEN[fMax], sym: "flamme", key: "feuer",
+    lab: `Waldbrand &amp; Grasland${F?.station ? ` · ${esc(F.station)}` : ""}`,
+    teile: [feuerTeil("Waldbrand (WBI)", wbi), feuerTeil("Grasland (GLFI)", glfi)]
+  }));
   let h = `<section class="blk"><h2>${esc(gewaesserName())} &amp; Wald <small>antippen für Details</small></h2><div class="gkacheln">${kacheln.join("")}</div>`;
 
   // ---- Karte: Weser
