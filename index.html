@@ -197,6 +197,56 @@ a{color:var(--rain)}
 .daydet .mg-scroll{margin:0 -4px}
 img.wi{display:block;flex:none;pointer-events:none}
 .hero-btns{display:flex;gap:8px}
+/* ---------- Gesundheit ---------- */
+.gkacheln{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.gk{background:var(--surface);border-radius:18px;padding:12px 14px 12px;min-width:0;position:relative;overflow:hidden}
+.gk::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,color-mix(in srgb,var(--c) 16%,transparent),transparent 60%);pointer-events:none}
+.gk-top{display:flex;align-items:center;gap:7px;font:600 12.5px var(--font);color:var(--muted);position:relative}
+.gk-ic{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--c)}
+.gk-val{font:600 24px/1.1 var(--font);margin-top:10px;position:relative}
+.gk-val small{font:500 14px var(--font);color:var(--muted);margin-left:4px}
+.gk-sub{font-size:12.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative}
+.gk-bar{display:flex;gap:4px;margin-top:10px;position:relative}
+.gk-bar i{flex:1;height:4px;border-radius:2px;background:var(--soft)}
+.gk-bar i.an{background:var(--c)}
+.gcard{background:var(--surface);border-radius:18px;padding:14px 14px 10px;margin-bottom:10px}
+.gc-kopf{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.gc-titel{display:flex;align-items:center;gap:7px;font:600 16px var(--font)}
+.gc-titel svg{color:var(--muted)}
+.gpill{font:600 12px var(--font);padding:4px 9px;border-radius:999px;background:color-mix(in srgb,var(--c,var(--muted)) 15%,transparent);color:color-mix(in srgb,var(--c,var(--muted)) 85%,var(--ink));white-space:nowrap}
+.gc-fuss{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid var(--line);margin-top:10px;padding-top:8px;font-size:11.5px;color:var(--muted)}
+.glink{border:0;background:none;color:var(--rain);font:600 13px var(--font);padding:2px 0;white-space:nowrap}
+.gleer{display:flex;align-items:center;gap:12px;padding:4px 0}
+.gleer-ic{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:color-mix(in srgb,#27AE60 15%,transparent);color:#27AE60;flex:none}
+.gleer b{display:block;font:600 18px var(--font)}
+.gleer span{display:block;font-size:13.5px;color:var(--muted);margin-top:1px}
+.gpt-kopf,.gpt-zeile{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;align-items:center;gap:6px}
+.gpt-kopf span{font-size:11.5px;color:var(--muted);text-align:center}
+.gpt-zeile{padding:8px 0;border-top:1px solid var(--line)}
+.gpt-zeile b{font:600 15px var(--font)}
+.gpt-zeile>span{display:flex;flex-direction:column;align-items:center;gap:3px}
+.gpt-zeile small{font-size:11px;color:var(--muted)}
+.sig{display:inline-flex;align-items:flex-end;gap:2px;height:16px}
+.sig i{width:5px;border-radius:2px;background:var(--line)}
+.sig i.an{background:var(--c)}
+.gt-zeile{padding:6px 0 10px}
+.gt-zeile+.gt-zeile{border-top:1px solid var(--line);padding-top:10px}
+.gt-kopf{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.gt-kopf b{font:600 15px var(--font)}
+.gt-wert{margin-left:auto;font:500 14px var(--num);color:var(--muted)}
+.gskala{position:relative;height:28px}
+.gs-band{position:absolute;left:0;right:0;top:4px;height:8px;border-radius:4px;background:linear-gradient(90deg,#2A4F9A 0%,#4F8FD3 18%,#9CC3EC 34%,#6FCF97 40%,#6FCF97 66%,#F6E7A6 72%,#F2B04A 80%,#E8743A 90%,#B3122B 100%);opacity:.85}
+.gs-span{position:absolute;top:1px;height:14px;border-radius:7px;border:2.5px solid var(--ink);background:color-mix(in srgb,var(--surface) 25%,transparent);box-sizing:border-box}
+.gs-ticks span{position:absolute;top:16px;transform:translateX(-50%);font-size:10.5px;color:var(--muted)}
+.gb-per+.gb-per{margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
+.gb-lab{font:600 12px var(--font);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.gb-zeile{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:14px}
+.gb-zeile i{width:8px;height:8px;border-radius:50%;flex:none}
+.gb-zeile span{flex:1;min-width:0}
+.gb-ruhig{font:600 15px var(--font);padding:3px 0}
+.gtipp{display:flex;gap:10px;align-items:flex-start;margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--soft);font-size:13.5px;line-height:1.4}
+.gtipp svg{color:#E2B400;flex:none;margin-top:1px}
+
 /* ---------- Einstellungen: Übersicht und Unterseiten ---------- */
 .mlist{background:var(--surface);border-radius:18px;overflow:hidden;margin:0 0 18px}
 .mrow{display:flex;align-items:center;gap:14px;width:100%;border:0;background:none;padding:12px 14px;text-align:left;color:var(--ink);border-top:1px solid var(--line);font:inherit}
@@ -1282,6 +1332,9 @@ function thermKlasse(t) {
   return [-4, "extreme Kältebelastung"];
 }
 function tagesBelastung(t) {
+  const r = tagesBelastungRoh(t); if (r) r.t = t; return r;
+}
+function tagesBelastungRoh(t) {
   const h = t.hours.filter(x => x.t.getHours() >= 6 && x.t.getHours() <= 22 && x.felt != null);
   if (!h.length) return null;
   const mx = Math.max(...h.map(x => x.felt)), mn = Math.min(...h.map(x => x.felt));
@@ -1311,29 +1364,99 @@ function bioPerioden() {
   if (!out.length && z.perioden[0]) out.push([z.perioden[0].name, z.perioden[0]]);
   return { z, out, stand: B.stand };
 }
+const G_FARBEN = ["#27AE60", "#E2B400", "#EE8A00", "#D7261E", "#8E1B7A"];
+const G_SYM = {
+  pollen: '<circle cx="12" cy="12" r="2.6"/><path d="M12 9.4c-1.6-3.2-.4-5.4 0-5.9.4.5 1.6 2.7 0 5.9zM12 14.6c1.6 3.2.4 5.4 0 5.9-.4-.5-1.6-2.7 0-5.9zM9.4 12c-3.2 1.6-5.4.4-5.9 0 .5-.4 2.7-1.6 5.9 0zM14.6 12c3.2-1.6 5.4-.4 5.9 0-.5.4-2.7 1.6-5.9 0z"/>',
+  temp: '<path d="M14 14.8V5a2 2 0 1 0-4 0v9.8a3.5 3.5 0 1 0 4 0z"/><path d="M12 9v7.5"/>',
+  bio: '<path d="M3.5 12h4l2-4 3 8 2-4h6"/>',
+  uv: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
+  blatt: '<path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14z"/><path d="M5 19l7-7"/>',
+  tipp: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>'
+};
+const gsym = (k, gr = 18) => `<svg width="${gr}" height="${gr}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${G_SYM[k]}</svg>`;
+function fmtStand(s) {
+  const m = /(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}:\d{2})/.exec(s || "");
+  return m ? `${m[3]}.${m[2]}., ${m[4]} Uhr` : (s || "–");
+}
+const pollenStufe = lv => lv <= 0 ? 0 : lv <= 2 ? 1 : lv <= 4 ? 2 : 3;
+function bioStufe(v) { return /hoch|stark/i.test(v) ? 3 : /mäßig|mittel/i.test(v) ? 2 : /gering/i.test(v) ? 1 : 0; }
+function gKachel(sym, lab, wert, unter, stufe, max = 4) {
+  return `<div class="gk" style="--c:${G_FARBEN[stufe]}"><div class="gk-top"><span class="gk-ic">${gsym(sym, 16)}</span>${lab}</div>
+    <div class="gk-val">${wert}</div><div class="gk-sub">${unter}</div>
+    <div class="gk-bar" aria-hidden="true">${Array.from({ length: max }, (_, i) => `<i class="${i < stufe ? "an" : ""}"></i>`).join("")}</div></div>`;
+}
+function signal(lv) { // Signalbalken 0–3 wie beim Handyempfang
+  const st = pollenStufe(lv);
+  return `<span class="sig" style="--c:${G_FARBEN[st]}">${[1, 2, 3].map(i => `<i class="${i <= Math.ceil(lv / 2) ? "an" : ""}" style="height:${4 + i * 4}px"></i>`).join("")}</span>`;
+}
+function gefuehltSkala(b) {
+  // Skala −25 … 40 °C, Bereich des Tages als Spanne markiert
+  const pos = v => clamp((v + 25) / 65 * 100, 0, 100);
+  const lo = pos(b.min), hi = pos(b.max);
+  return `<div class="gskala"><div class="gs-band"></div><div class="gs-span" style="left:${lo}%;width:${Math.max(2, hi - lo)}%"></div>
+    <div class="gs-ticks"><span style="left:${pos(0)}%">0°</span><span style="left:${pos(20)}%">20°</span><span style="left:${pos(32)}%">32°</span></div></div>`;
+}
 function gesundheitHtml(d) {
-  let h = "";
-  // Pollen
+  const t0 = d.days[0], kacheln = [];
+  // ---- Pollen
   const pz = pollenZeilen();
-  if (pz) {
-    const kopf = `<div class="ph"><span></span><span>Heute</span><span>Morgen</span><span>Übermorgen</span></div>`;
-    const rows = pz.zeilen.map(r => `<div class="pr"><span>${r.lab}</span>${[0, 1, 2].map(i => `<b class="pp p${r.lv[i] ?? 0}" title="${POLLEN_STUFEN[r.v[i]]?.[1] || ""}">${r.lv[i] ? esc(POLLEN_STUFEN[r.v[i]][1]) : "–"}</b>`).join("")}</div>`).join("");
-    h += `<div class="tile wide"><div class="k">Pollenflug, ${esc(pz.reg.name)}</div>${pz.zeilen.length ? `<div class="ptab">${kopf}${rows}</div>` : `<div class="s">${S.settings.pollenArten.length < 8 ? "Für deine gewählten Pollen" : "Zurzeit"} kein nennenswerter Pollenflug.</div>`}<div class="s">DWD-Pollenflug-Gefahrenindex, Stand ${esc(S.lage.pollen.stand || "–")}</div></div>`;
-  } else h += `<div class="tile wide"><div class="k">Pollenflug</div><div class="s">${S.lage ? "Pollendaten sind gerade nicht verfügbar. Mit der GitHub-Aktion (README) kommen sie zuverlässig." : "Wird geladen …"}</div></div>`;
-  // Thermische Belastung aus der Vorhersage
-  const tb = d.days.slice(0, 2).map((t, i) => [i ? "Morgen" : "Heute", tagesBelastung(t)]).filter(x => x[1]);
-  if (tb.length) h += `<div class="tile wide"><div class="k">Gefühlte Belastung</div>${tb.map(([lab, b]) => `<div class="trow"><span>${lab}</span><b class="tk t${b.k[0]}">${b.k[1]}</b><span class="muted">${b.txt}</span></div>`).join("")}<div class="s">Aus der gefühlten Temperatur der Vorhersage, eingeteilt nach der DWD-Skala.</div></div>`;
-  // Biowetter
+  let pMax = 0, pName = "";
+  if (pz) pz.zeilen.forEach(r => { if ((r.lv[0] || 0) > pMax) { pMax = r.lv[0]; pName = r.lab; } });
+  const pSt = pollenStufe(pMax);
+  if (pz) kacheln.push(gKachel("pollen", "Pollen heute", pMax ? ["", "Gering", "Mittel", "Hoch"][pSt] : "Keine", pMax ? `vor allem ${esc(pName)}` : "kaum Pollenflug", pSt, 3));
+  // ---- gefühlte Belastung
+  const tb = d.days.slice(0, 2).map((t, i) => [i ? "Morgen" : "Heute", tagesBelastung(t), t]).filter(x => x[1]);
+  if (tb.length) {
+    const b = tb[0][1], k = b.k[0], art = k > 0 ? "Wärme" : "Kälte";
+    kacheln.push(gKachel("temp", "Belastung", k === 0 ? "Keine" : ["", "Schwach", "Mäßig", "Stark", "Extrem"][Math.abs(k)], k === 0 ? "angenehm" : `durch ${art}`, Math.abs(k)));
+  }
+  // ---- Biowetter
   const bp = bioPerioden();
+  if (bp?.out.length) {
+    const rel = bp.out[0][1].effekte.filter(([, v]) => bioRelevant(v)).sort((a, b) => bioStufe(b[1]) - bioStufe(a[1]));
+    const st = rel.reduce((m, [, v]) => Math.max(m, bioStufe(v)), 0);
+    kacheln.push(gKachel("bio", "Biowetter", rel.length ? ["Ruhig", "Gering", "Mäßig", "Stark"][st] : "Ruhig", rel.length ? esc(rel.slice(0, 2).map(([n]) => bioName(n).split(" (")[0].split(",")[0]).join(", ")) : "kaum Wettereinfluss", st, 3));
+  }
+  // ---- UV
+  if (t0?.uv != null) { const u = t0.uv, st = u < 3 ? 0 : u < 6 ? 1 : u < 8 ? 2 : u < 11 ? 3 : 4; kacheln.push(gKachel("uv", "UV-Index", `${nf(u, 0)} <small>${uvText(u)}</small>`, "Tageshöchstwert", st)); }
+
+  let h = `<section class="blk"><h2>Gesundheit</h2>`;
+  if (kacheln.length) h += `<div class="gkacheln">${kacheln.join("")}</div>`;
+
+  // ---- Karte: Pollenflug
+  if (pz) {
+    let inhalt;
+    if (!pz.zeilen.length) inhalt = `<div class="gleer"><span class="gleer-ic">${gsym("blatt", 22)}</span><div><b>Durchatmen</b><span>Zurzeit kein nennenswerter Pollenflug${S.settings.pollenArten.length < 8 ? " für deine gewählten Pollen" : ""}.</span></div></div>`;
+    else inhalt = `<div class="gpt"><div class="gpt-kopf"><span></span><span>Heute</span><span>Morgen</span><span>Übermorgen</span></div>`
+      + pz.zeilen.map(r => `<div class="gpt-zeile"><b>${r.lab}</b>${[0, 1, 2].map(i => `<span>${signal(r.lv[i] || 0)}<small>${r.lv[i] ? esc(POLLEN_STUFEN[r.v[i]][1]).replace("keine bis gering", "schwach") : "–"}</small></span>`).join("")}</div>`).join("") + `</div>`;
+    h += `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("pollen", 16)}Pollenflug</span><span class="gpill">${esc(pz.reg.name)}</span></div>${inhalt}
+      <div class="gc-fuss"><span>DWD · Stand ${fmtStand(S.lage.pollen.stand)}</span><button class="glink" data-a="eseite:gesundheit">Pollen wählen ›</button></div></div>`;
+  } else h += `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("pollen", 16)}Pollenflug</span></div><div class="gleer"><span class="gleer-ic">${gsym("pollen", 22)}</span><div><b>${S.lage ? "Gerade nicht verfügbar" : "Wird geladen …"}</b><span>${S.lage ? "Die Pollendaten kommen über die GitHub-Aktion." : ""}</span></div></div></div>`;
+
+  // ---- Karte: gefühlte Temperatur
+  if (tb.length) {
+    h += `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("temp", 16)}Gefühlte Temperatur</span></div>`
+      + tb.map(([lab, b]) => {
+        const k = b.k[0], ab = Math.abs(k);
+        const werte = b.t.hours.filter(x => x.t.getHours() >= 6 && x.t.getHours() <= 22 && x.felt != null).map(x => x.felt);
+        const span = { min: Math.min(...werte), max: Math.max(...werte) };
+        return `<div class="gt-zeile"><div class="gt-kopf"><b>${lab}</b><span class="gpill" style="--c:${G_FARBEN[ab]}">${b.k[1]}</span><span class="gt-wert">${deg(span.min)} bis ${deg(span.max)}</span></div>${gefuehltSkala(span)}</div>`;
+      }).join("")
+      + `<div class="gc-fuss"><span>Aus der Vorhersage, eingeteilt nach der DWD-Skala</span></div></div>`;
+  }
+
+  // ---- Karte: Biowetter
   if (bp?.out.length) {
     const blk = bp.out.map(([lab, p]) => {
       const rel = p.effekte.filter(([, v]) => bioRelevant(v));
-      return `<div class="bper"><b>${lab}</b>${rel.length ? rel.map(([n, v]) => `<div class="brow"><span>${esc(bioName(n))}</span><i class="bv ${bioFarbe(v)}">${esc(v)}</i></div>`).join("") : `<div class="s">Kein nennenswerter Wettereinfluss.</div>`}</div>`;
+      return `<div class="gb-per"><div class="gb-lab">${lab}</div>${rel.length ? rel.map(([n, v]) => `<div class="gb-zeile"><i style="background:${G_FARBEN[bioStufe(v)]}"></i><span>${esc(bioName(n))}</span><b class="gpill" style="--c:${G_FARBEN[bioStufe(v)]}">${esc(v)}</b></div>`).join("") : `<div class="gb-ruhig">Kein nennenswerter Wettereinfluss</div>`}</div>`;
     }).join("");
     const rat = bp.out[0][1].rat.find(([, v]) => v)?.[1];
-    h += `<div class="tile wide"><div class="k">Biowetter, Gebiet ${esc(bp.z.id)}</div>${blk}${rat ? `<div class="s brat">${esc(rat)}</div>` : ""}<div class="s">DWD-Gefahrenindizes für Wetterfühlige, Stand ${esc(bp.stand || "–")}</div></div>`;
+    h += `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("bio", 16)}Biowetter</span><span class="gpill">Gebiet ${esc(bp.z.id)}</span></div>${blk}
+      ${rat ? `<div class="gtipp">${gsym("tipp", 18)}<span>${esc(rat)}</span></div>` : ""}
+      <div class="gc-fuss"><span>DWD-Gefahrenindizes für Wetterfühlige · Stand ${fmtStand(bp.stand)}</span></div></div>`;
   }
-  return `<section class="blk"><h2>Gesundheit</h2><div class="tiles">${h}</div></section>`;
+  return h + `</section>`;
 }
 
 /* ---------- Lage teilen ---------- */
