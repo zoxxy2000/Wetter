@@ -1341,9 +1341,13 @@ function kompaktBio(j) {
 }
 async function ladeLage(erzwingen) {
   if (!erzwingen && S.lage?.ts && Date.now() - S.lage.ts < 20 * 60e3) return;
-  let j = null;
-  try { j = await getJSON(`daten/lage.json?t=${Math.floor(Date.now() / 600e3)}`, { timeout: 10000 }); } catch { /* Aktion noch nicht eingerichtet */ }
-  const L = { ts: Date.now(), github: !!j, stand: j?.stand || null, feuer: j?.feuer || null, pollen: j?.pollen || null, bio: j?.bio || null };
+  // 1. eigener Server (Hetzner) – holt Feuerindizes täglich ab 7 Uhr, Pollen/Biowetter ab 11 Uhr
+  // 2. Rückfall: Datei der GitHub-Aktion
+  let j = null, quelle = null;
+  const server = CFG.push.server ? CFG.push.server.replace(/api\.php.*$/, "lage.php") : "";
+  if (server) try { j = await getJSON(`${server}?t=${Math.floor(Date.now() / 300e3)}`, { timeout: 12000 }); quelle = "server"; } catch { j = null; }
+  if (!j) try { j = await getJSON(`daten/lage.json?t=${Math.floor(Date.now() / 600e3)}`, { timeout: 10000 }); quelle = "github"; } catch { /* nicht eingerichtet */ }
+  const L = { ts: Date.now(), github: !!j, quelle, stand: j?.stand || null, feuer: j?.feuer || null, pollen: j?.pollen || null, bio: j?.bio || null };
   // Rückfall: direkt beim DWD (funktioniert nur, wenn der DWD Browser-Abrufe zulässt)
   if (S.settings.gesundheit) {
     if (!L.pollen) L.pollen = await getJSON(DWD_POLLEN, { timeout: 10000 }).then(kompaktPollen).catch(() => null);
@@ -1945,11 +1949,34 @@ function eKarteHtml(sw) {
     + elabel("Kartenanbieter") + `<div class="plist"><div class="thr one"><div><label for="t-carto">CARTO-Schlüssel (optional)</label><input type="text" id="t-carto" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="leer lassen für OpenStreetMap" value="${esc(st.cartoKey || "")}"></div></div></div>
     <p class="ehinweis">Ohne Schlüssel zeigt die App die OpenStreetMap-Karte. Mit einem kostenlosen Schlüssel von <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noopener">carto.com/basemaps/apikey</a> wird die ruhigere CARTO-Karte geladen. Der Schlüssel bleibt auf diesem Gerät.</p>`;
 }
+/* ---------- Update-Prüfung: Version auf dem Server mit der installierten vergleichen ---------- */
+async function serverVersion() {
+  const t = await (await fetch("version.js?t=" + Date.now(), { cache: "no-store" })).text();
+  return (/APP_VERSION\s*=\s*"([^"]+)"/.exec(t) || [])[1] || null;
+}
+async function updatePruefen(laut) {
+  if (!navigator.onLine) { if (laut) toast("Keine Internetverbindung."); return; }
+  try {
+    const v = await serverVersion(); S.serverVersion = v;
+    if (!v || v === self.APP_VERSION) { if (laut) toast(`PW-Wetter ${self.APP_VERSION} ist aktuell.`); if (S.tab === "orte" && S.eSeite === "app") render(); return; }
+    // Schutz vor Endlosschleife: automatisch höchstens einmal alle 10 Minuten neu laden
+    let zuletzt = 0; try { zuletzt = +sessionStorage.getItem("pwUpdate:" + v) || 0; } catch { }
+    if (!laut && Date.now() - zuletzt < 10 * 60e3) return;
+    try { sessionStorage.setItem("pwUpdate:" + v, String(Date.now())); } catch { }
+    S.updateLaeuft = true;
+    if (laut) toast(`Version ${v} wird geladen …`);
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if (reg) { await reg.update().catch(() => { }); }
+    // Falls kein neuer Service Worker übernimmt: nach kurzer Zeit trotzdem neu laden
+    setTimeout(() => location.reload(), 4000);
+  } catch (e) { if (laut) toast("Update-Prüfung fehlgeschlagen: " + e.message); }
+}
 function eAppHtml() {
   const L = S.lage;
-  const dst = L?.github ? `Automatischer Abruf über GitHub aktiv${L.stand ? `, Stand ${esc(L.stand)}` : ""}` : "Automatischer Abruf über GitHub noch nicht eingerichtet";
+  const dst = L?.quelle === "server" ? `Vom eigenen Server: Feuerindizes täglich ab 7 Uhr, Pollen und Biowetter ab 11 Uhr${L.feuer?.stand ? ` · Feuer ${esc(L.feuer.stand)}` : ""}`
+    : L?.github ? `Über GitHub${L.stand ? `, Stand ${esc(L.stand)}` : ""}` : "Noch keine Zusatzdaten verfügbar";
   return `<div class="plist">
-    <div class="setting"><div>Version<span>PW-Wetter ${esc(self.APP_VERSION || "–")}</span></div></div>
+    <div class="setting"><div>Version<span>Installiert: ${esc(self.APP_VERSION || "–")}${S.serverVersion ? ` · auf dem Server: ${esc(S.serverVersion)}` : ""}</span></div><button class="btn ghost" data-a="update">Prüfen</button></div>
     <div class="setting"><div>Zusatzdaten<span>${dst}</span></div></div>
     <div class="setting"><div>Alles neu laden<span>Wetter, Radar, Pegel und Zusatzdaten sofort abrufen</span></div><button class="btn ghost" data-a="neuladen">Laden</button></div>
     ${S.installEvt ? `<div class="setting"><div>Als App installieren<span>Legt PW-Wetter auf den Startbildschirm</span></div><button class="btn" data-a="install">Installieren</button></div>` : ""}
@@ -3203,6 +3230,7 @@ document.addEventListener("click", async e => {
     }
     case "extras": S.settings.extras = !S.settings.extras; speichere(); render(); if (S.settings.extras) { ladePegel().then(render).catch(() => { }); ladeLage().then(render).catch(() => { }); } break;
     case "teilen": teilen(); break;
+    case "update": updatePruefen(true); break;
     case "pwahl": {
       const s = arg ? (S.pegelListe?.liste || []).find(x => x.id === arg) || S.settings.pegelWahl : null;
       S.settings.pegelWahl = s ? { id: s.id, name: s.name, water: s.water } : null;
@@ -3254,7 +3282,11 @@ window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); S.inst
    Start
    ===================================================================== */
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
-  navigator.serviceWorker.register("sw.js").catch(e => console.warn("SW", e));
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(e => console.warn("SW", e));
+  // nach einem Update einmal neu laden, damit die neue Fassung sofort sichtbar ist
+  let neuGeladen = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (S.updateLaeuft && !neuGeladen) { neuGeladen = true; location.reload(); } });
+  setTimeout(() => updatePruefen(false), 4000);
 }
 if (!S.curId || !alleOrte().some(p => p.id === S.curId)) S.curId = alleOrte()[0].id;
 Sky.init($("#skycanvas"));
