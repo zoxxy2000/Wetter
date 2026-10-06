@@ -213,6 +213,17 @@ img.wi{display:block;flex:none;pointer-events:none}
 .gk.breit .gk-sub{min-height:0;-webkit-line-clamp:1}
 .gk.breit.wasser::after{height:38%;background-size:150px 100%}
 .gk.breit.feuer::after{height:58%}
+
+.regenstrip{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;font:inherit;color:var(--ink);margin:12px 0 4px;padding:11px 14px;border-radius:16px;
+  background:linear-gradient(100deg,color-mix(in srgb,#2F80ED 16%,var(--surface)),var(--surface) 70%);box-shadow:inset 0 0 0 1px color-mix(in srgb,#2F80ED 22%,transparent)}
+.regenstrip .rs-ic{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:color-mix(in srgb,#2F80ED 16%,transparent);flex:none}
+.regenstrip div{flex:1;min-width:0}
+.regenstrip b{display:block;font:600 15.5px var(--font)}
+.regenstrip span{display:block;font-size:12.5px;color:var(--muted);margin-top:1px}
+.regenstrip:active{transform:scale(.99)}
+.mapwrap{position:relative}
+.rzoom{position:absolute;left:10px;top:10px;z-index:500;border:0;border-radius:999px;padding:7px 13px;font:600 13px var(--font);color:var(--ink);background:var(--surface);box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.rlade{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:500;padding:7px 13px;border-radius:999px;font:500 13px var(--font);color:#fff;background:rgba(20,28,40,.78);white-space:nowrap}
 /* ---------- Kacheln als Einstieg, Details im Blatt ---------- */
 .gk[role=button]{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s ease}
 .gk[role=button]:active{transform:scale(.97)}
@@ -899,6 +910,8 @@ async function ladeRadar(p) {
   const lp = j.latlon_position; let px = lp?.x ?? (Array.isArray(lp) ? lp[0] : null), py = lp?.y ?? (Array.isArray(lp) ? lp[1] : null);
   if (px == null || px < 0 || px >= W || py < 0 || py >= H) { px = (W - 1) / 2; py = (H - 1) / 2; }
   const f = Radolan(p.lat, p.lon), off = { c: f.c - px, r: f.r - py };
+  // Lage des Gesamtgitters merken (aus der Antwort selbst abgeleitet), damit das Deutschland-Radar exakt passt
+  if (Array.isArray(j.bbox) && j.bbox.length === 4) S.radolanNull = { c: off.c - j.bbox[1], r: off.r - j.bbox[0] };
   const ci = Math.round(px), ri = Math.round(py);
   const series = frames.map(fr => {
     let m = 0;
@@ -1045,7 +1058,7 @@ function renderHero(p, d) {
   $("#h-cond").textContent = c ? zustand(c.icon, { prec: c.prec1h, cloud: c.cloud, night: sun.alt < -2 }) : (S.err ? "Keine Daten" : "Lädt …");
   $("#h-hilo").innerHTML = heute ? `<span>Höchst <b>${deg(heute.max)}</b></span><span>Tiefst <b>${deg(heute.min)}</b></span>${c?.felt != null ? `<span>Gefühlt <b>${deg(c.felt)}</b></span>` : ""}` : "";
   const nc = nowcast();
-  $("#h-rain").innerHTML = nc?.zeigen ? `<span class="rainhint">${ico("rain", 20)}${esc(nc.text)}</span>` : "";
+  $("#h-rain").innerHTML = "";
   let st = "";
   if (c?.station?.name) {
     st = `Gemessen${c.t ? " " + hm(c.t) : ""} an der DWD-Station ${esc(c.station.name)}${c.station.km != null ? `, ${nf(c.station.km, 1)} km entfernt` : ""}`;
@@ -1079,7 +1092,7 @@ function renderWetter() {
   // Gleich
   const nc = nowcast();
   if (nc?.zeigen) {
-    h += `<section class="blk"><h2>Gleich <small>Radar, nächste 2 Std</small></h2><div class="panel"><div class="nowtext">${esc(nc.text)}</div><div class="nowsub">Höchstens ${nf(nc.max, 1)} mm/h</div><div class="nowchart">${nowChart(nc.series)}</div></div></section>`;
+    h += `<button class="regenstrip" data-a="regenradar"><span class="rs-ic">${ico(nc.jetzt >= 0.1 ? "rain" : "drizzle", 26)}</span><div><b>${esc(nc.text)}</b><span>Laut Radar, höchstens ${nf(nc.max, 1)} mm/h · Radar ansehen</span></div><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>`;
   }
   // Schwellen
   const hw = hinweise(d);
@@ -2020,7 +2033,7 @@ function einstBinden(el) {
   const tp = $("#t-pegel"); if (tp) tp.addEventListener("change", () => { const v = parseFloat(tp.value); st.schwellen.pegel = isNaN(v) ? null : v; speichere(); toast(isNaN(v) ? "Pegel-Alarm aus." : `Pegel-Alarm ab ${v} cm.`); });
   pushFelderBinden();
   el.querySelectorAll("#t-boen,#t-frost,#t-pegel,#s-pollen").forEach(i => i.addEventListener("change", () => pushAktualisieren()));
-  const sk = $("#s-karte"); if (sk) sk.addEventListener("change", () => { st.kartenStil = sk.value; speichere(); if (S.wolken) S.wolken.urls = {}; if (RV.map && window.L) { RV.tiles?.remove(); RV.tiles = kachelLayer(window.L, RV.map).addTo(RV.map); wolkenZeigen(); } });
+  const sk = $("#s-karte"); if (sk) sk.addEventListener("change", () => { st.kartenStil = sk.value; speichere(); if (S.wolken) S.wolken.urls = {}; if (S.wolkenDE) S.wolkenDE.urls = {}; if (RV.map && window.L) { RV.tiles?.remove(); RV.tiles = kachelLayer(window.L, RV.map).addTo(RV.map); wolkenZeigen(); } });
   const sp = $("#s-pollen"); if (sp) sp.addEventListener("change", () => { st.pollenRegion = +sp.value; speichere(); });
   const sb = $("#s-bio"); if (sb) sb.addEventListener("change", () => { st.bioZone = sb.value; speichere(); });
 }
@@ -2665,16 +2678,16 @@ const RV = { map: null, tiles: null, overlay: null, marker: null, idx: null, bou
 function renderRadar() {
   const el = $("#tab-radar"), p = aktOrt();
   if (!el.dataset.built) {
-    el.innerHTML = `<h1>Radar</h1><p class="sub" id="r-sub"></p><div id="map"></div>
+    el.innerHTML = `<h1>Radar</h1><p class="sub" id="r-sub"></p><div class="mapwrap"><div id="map"></div><button class="rzoom" id="rzoom" data-a="rzoom:de">Deutschland</button><div class="rlade" id="rlade" hidden></div></div>
       <div class="rctl"><button class="playbtn" id="rplay" data-a="rplay" aria-label="Abspielen"></button><div class="rtime"><b id="rtime">–</b><span id="rrel"></span></div></div>
       <input type="range" id="rslider" min="0" max="0" value="0" aria-label="Zeitpunkt">
       <div class="rticks"><span>−1 Std</span><span>jetzt</span><span>+2 Std</span></div>
       <div class="legend"><span>leicht</span><span class="bar stufen">${REGEN_STUFEN.slice(0, 10).map(([, c]) => `<i style="background:${c}"></i>`).join("")}</span><span>stark</span></div>
-      <section class="blk"><h2>Regen an deinem Ort <small>nächste 2 Std</small></h2><div class="panel" id="rchart"></div></section>`;
+      <section class="blk" id="rchartblk"><h2>Regen an deinem Ort <small>nächste 2 Std</small></h2><div class="panel" id="rchart"></div></section>`;
     el.dataset.built = "1";
     $("#rslider").addEventListener("input", e => { stopPlay(); zeigeFrame(+e.target.value); });
   }
-  $("#r-sub").textContent = `${p.name}, Umkreis ${CFG.radarKm} km. Niederschlag aus dem DWD-Radar in 5-Minuten-Schritten.`;
+  $("#r-sub").textContent = `${p.name} und Umgebung in 5-Minuten-Schritten. Zum Herauszoomen auf „Deutschland“ tippen.`;
   setPlayIcon();
   const R = S.radar;
   const nc = nowcast();
@@ -2684,6 +2697,7 @@ function renderRadar() {
       RV.map = L.map("map", { zoomControl: false, attributionControl: true, zoomSnap: 0.5 }).setView([p.lat, p.lon], 8.5);
       RV.tiles = kachelLayer(L, RV.map).addTo(RV.map);
       L.control.zoom({ position: "topright" }).addTo(RV.map);
+      RV.map.on("moveend zoomend", () => { clearTimeout(RV.et); RV.et = setTimeout(ebenePruefen, 300); });
     }
     setTimeout(() => RV.map.invalidateSize(), 50);
     if (RV.marker) RV.marker.remove();
@@ -2701,11 +2715,79 @@ function renderRadar() {
       $("#rslider").max = R.frames.length - 1;
       if (RV.overlay) RV.overlay.remove();
       if (RV.wolken) { RV.wolken.remove(); RV.wolken = null; }
+      RV.ebene = "nah"; RV.overlayEbene = "nah";
       RV.overlay = L.imageOverlay(frameUrl(ni), [[RV.bounds.s, RV.bounds.w], [RV.bounds.n, RV.bounds.e]], { opacity: .9, interactive: false, className: "radar-bild" }).addTo(RV.map);
       zeigeFrame(ni); radarVorrechnen();
       if (S.settings.radarWolken) ladeWolken(p, RV.bounds).then(() => wolkenZeigen()).catch(e => console.warn("Wolken", e));
     }
   }).catch(e => { $("#map").innerHTML = `<div class="radar-msg">${esc(e.message)} Prüfe die Internetverbindung.</div>`; });
+}
+/* ---------- Radar für ganz Deutschland (wird beim Herauszoomen nachgeladen) ---------- */
+const DE_BOUNDS = { n: 55.4, s: 46.6, w: 3.2, e: 17.0 };
+const DE_CW = 640, DE_CH = Math.round(DE_CW * (merc(DE_BOUNDS.n) - merc(DE_BOUNDS.s)) / ((DE_BOUNDS.e - DE_BOUNDS.w) * Math.PI / 180));
+function verkleinern(d, W0, H0) {
+  // 2×2 Zellen zusammenfassen (Maximum), spart drei Viertel Speicher und Rechenzeit
+  const W = Math.ceil(W0 / 2), H = Math.ceil(H0 / 2), out = new Uint16Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let m = 0;
+    for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
+      const yy = 2 * y + dy, xx = 2 * x + dx; if (yy >= H0 || xx >= W0) continue;
+      const v = d[yy * W0 + xx]; if (v < 30000 && v > m) m = v;
+    }
+    out[y * W + x] = m;
+  }
+  return { d: out, W, H };
+}
+async function ladeRadarDE() {
+  if (S.radarDE && Date.now() - S.radarDE.ts < 10 * 60e3) return S.radarDE;
+  if (RV.deLaedt) return RV.deLaedt;
+  radarHinweis("Radar für Deutschland wird geladen …");
+  RV.deLaedt = (async () => {
+    const kann = typeof DecompressionStream !== "undefined";
+    const basis = Math.floor(Date.now() / 300e3) * 300e3, zeiten = [];
+    for (let k = -4; k <= 8; k++) zeiten.push(new Date(basis + k * 15 * 60e3));   // −1 bis +2 Std in 15-Minuten-Schritten
+    const res = await Promise.allSettled(zeiten.map(t => getJSON(`${BS}/radar?date=${encodeURIComponent(t.toISOString())}&last_date=${encodeURIComponent(new Date(t.getTime() + 60e3).toISOString())}&tz=Europe/Berlin${kann ? "" : "&format=plain"}`, { timeout: 45000 })));
+    const frames = []; let W = 0, H = 0, off = { c: 0, r: 0 };
+    for (const r of res) {
+      if (r.status !== "fulfilled") continue;
+      const j = r.value, rec = j.radar?.[0]; if (!rec) continue;
+      let d, W0, H0;
+      // Nullpunkt des DWD-Gitters (DE1200): aus dem Ortsradar abgeleitet, sonst laut DWD-Spezifikation
+      const null0 = S.radolanNull || { c: -543.4622, r: 3608.6447 };
+      if (Array.isArray(j.bbox) && j.bbox.length === 4) { H0 = j.bbox[2] - j.bbox[0] + 1; W0 = j.bbox[3] - j.bbox[1] + 1; off = { c: null0.c + j.bbox[1], r: null0.r + j.bbox[0] }; }
+      else off = { c: null0.c, r: null0.r };
+      if (typeof rec.precipitation_5 === "string") d = await inflate16(rec.precipitation_5);
+      else { const rows = rec.precipitation_5; H0 = rows.length; W0 = rows[0].length; d = new Uint16Array(W0 * H0); rows.forEach((row, i) => d.set(row, i * W0)); }
+      if (!W0 || W0 * H0 !== d.length) { W0 = 1100; H0 = d.length / 1100; }
+      const k = verkleinern(d, W0, H0); W = k.W; H = k.H;
+      frames.push({ t: new Date(rec.timestamp), d: k.d });
+    }
+    if (!frames.length) throw new Error("Deutschland-Radar nicht erreichbar");
+    frames.sort((a, b) => a.t - b.t);
+    return { de: true, frames, W, H, off, skala: 2, ts: Date.now(), urls: [] };
+  })();
+  try { S.radarDE = await RV.deLaedt; RV.idxDE = radarIndex(S.radarDE, DE_BOUNDS, DE_CW, DE_CH); }
+  finally { RV.deLaedt = null; radarHinweis(""); }
+  return S.radarDE;
+}
+function radarHinweis(t) { const el = $("#rlade"); if (el) { el.textContent = t; el.hidden = !t; } }
+function ebene() {
+  return RV.ebene === "de" && S.radarDE
+    ? { key: "de", R: S.radarDE, idx: RV.idxDE, bounds: DE_BOUNDS, cw: DE_CW, ch: DE_CH, wolken: S.wolkenDE }
+    : { key: "nah", R: S.radar, idx: RV.idx, bounds: RV.bounds, cw: RV.CW, ch: RV.CH, wolken: S.wolken };
+}
+function naechsterFrame(R, t) { let b = 0, m = Infinity; R.frames.forEach((f, i) => { const d = Math.abs(f.t - t); if (d < m) { m = d; b = i; } }); return b; }
+async function ebenePruefen() {
+  if (!RV.map || !S.radar || !RV.bounds) return;
+  const z = RV.map.getZoom(), v = RV.map.getBounds(), b = RV.bounds, rand = .15;
+  const nahPasst = z >= 7.5 && v.getNorth() <= b.n + rand && v.getSouth() >= b.s - rand && v.getWest() >= b.w - rand * 2 && v.getEast() <= b.e + rand * 2;
+  const soll = nahPasst ? "nah" : "de";
+  if (soll === "de") {
+    try { await ladeRadarDE(); } catch (e) { radarHinweis("Deutschland-Radar gerade nicht erreichbar"); setTimeout(() => radarHinweis(""), 3000); return; }
+    if (S.settings.radarWolken && !S.wolkenDE) ladeWolken(null, DE_BOUNDS).then(w => { S.wolkenDE = w; wolkenZeigen(); }).catch(() => { });
+  }
+  if (RV.ebene !== soll) { RV.ebene = soll; zeigeFrame(RV.i); radarVorrechnen(); }
+  const knopf = $("#rzoom"); if (knopf) { knopf.textContent = soll === "de" ? "Mein Ort" : "Deutschland"; knopf.dataset.a = soll === "de" ? "rzoom:ort" : "rzoom:de"; }
 }
 function radarIndex(R, b, CW, CH) {
   // pro Bildpunkt: linke obere Radarzelle und Anteile für weiche (bilineare) Übergänge
@@ -2714,7 +2796,7 @@ function radarIndex(R, b, CW, CH) {
     const lat = imerc(yN + (yS - yN) * (j + .5) / CH);
     for (let i = 0; i < CW; i++) {
       const lon = b.w + (b.e - b.w) * (i + .5) / CW, f = Radolan(lat, lon);
-      const c = f.c - R.off.c, r = f.r - R.off.r, c0 = Math.floor(c), r0 = Math.floor(r), k = j * CW + i;
+      const s = R.skala || 1, c = (f.c - R.off.c) / s, r = (f.r - R.off.r) / s, c0 = Math.floor(c), r0 = Math.floor(r), k = j * CW + i;
       if (c0 < 0 || r0 < 0 || c0 + 1 >= R.W || r0 + 1 >= R.H) continue;
       i0[k] = r0 * R.W + c0; fx[k] = c - c0; fy[k] = r - r0;
     }
@@ -2748,9 +2830,9 @@ function boxBlur(src, tmp, w, h, r) {
     for (let y = 0; y < h; y++) { src[y * w + x] = acc / n; acc += tmp[Math.min(h - 1, y + r + 1) * w + x] - tmp[Math.max(0, y - r) * w + x]; }
   }
 }
-function frameUrl(i) {
-  const R = S.radar; if (R.urls[i]) return R.urls[i];
-  const w = RV.CW, hh = RV.CH, d = R.frames[i].d, N = w * hh, { i0, fx, fy } = RV.idx, W = R.W;
+function frameUrl(i, E = ebene()) {
+  const R = E.R; if (R.urls[i]) return R.urls[i];
+  const w = E.cw, hh = E.ch, d = R.frames[i].d, N = w * hh, { i0, fx, fy } = E.idx, W = R.W;
   const L = v => (v > 0 && v <= 30000 ? Math.log1p(v * 0.12) : 0);
   const f = new Float32Array(N), tmp = new Float32Array(N);
   let max = 0;
@@ -2790,7 +2872,7 @@ function rauschen(n) {
   return out;
 }
 async function ladeWolken(p, b) {
-  if (S.wolken && S.wolken.pid === p.id && Date.now() - S.wolken.ts < 30 * 60e3) return S.wolken;
+  if (p && S.wolken && S.wolken.pid === p.id && Date.now() - S.wolken.ts < 30 * 60e3) return S.wolken;
   const lats = [], lons = [];
   for (let j = 0; j < WOLKEN_N; j++) for (let i = 0; i < WOLKEN_N; i++) {
     lats.push((b.n - (b.n - b.s) * j / (WOLKEN_N - 1)).toFixed(3)); lons.push((b.w + (b.e - b.w) * i / (WOLKEN_N - 1)).toFixed(3));
@@ -2799,11 +2881,12 @@ async function ladeWolken(p, b) {
   const liste = Array.isArray(j) ? j : [j];
   const zeiten = liste[0].hourly.time.map(t => t * 1000);
   const felder = zeiten.map((_, h) => Float32Array.from(liste.map(o => (o.hourly.cloud_cover[h] ?? 0) / 100)));
-  S.wolken = { pid: p.id, zeiten, felder, ts: Date.now(), urls: {} };
-  return S.wolken;
+  const set = { pid: p ? p.id : "de", zeiten, felder, ts: Date.now(), urls: {} };
+  if (p) S.wolken = set;
+  return set;
 }
-function wolkenUrl(t) {
-  const Wk = S.wolken; if (!Wk) return null;
+function wolkenUrl(t, Wk = S.wolken) {
+  if (!Wk) return null;
   const z = Wk.zeiten; let h = 0; while (h < z.length - 2 && t >= z[h + 1]) h++;
   const a = clamp((t - z[h]) / (z[h + 1] - z[h]), 0, 1), key = h + ":" + Math.round(a * 6);
   if (Wk.urls[key]) return Wk.urls[key];
@@ -2827,26 +2910,33 @@ function wolkenUrl(t) {
 }
 function wolkenZeigen() {
   const R = S.radar; if (!R || !RV.map || !window.L) return;
-  if (!S.settings.radarWolken || !S.wolken || S.wolken.pid !== R.pid) { if (RV.wolken) { RV.wolken.remove(); RV.wolken = null; } return; }
-  const url = wolkenUrl(R.frames[RV.i]?.t.getTime() ?? Date.now()); if (!url) return;
-  if (!RV.wolken) { RV.wolken = window.L.imageOverlay(url, [[RV.bounds.s, RV.bounds.w], [RV.bounds.n, RV.bounds.e]], { interactive: false, className: "wolken-bild" }).addTo(RV.map); RV.overlay?.bringToFront(); }
+  const E = ebene(), Wk = E.key === "de" ? S.wolkenDE : (S.wolken?.pid === R.pid ? S.wolken : null);
+  if (!S.settings.radarWolken || !Wk || RV.wolkenEbene !== E.key) { if (RV.wolken) { RV.wolken.remove(); RV.wolken = null; } }
+  if (!S.settings.radarWolken || !Wk) return;
+  const url = wolkenUrl(R.frames[RV.i]?.t.getTime() ?? Date.now(), Wk); if (!url) return;
+  if (!RV.wolken) { RV.wolkenEbene = E.key; RV.wolken = window.L.imageOverlay(url, [[E.bounds.s, E.bounds.w], [E.bounds.n, E.bounds.e]], { interactive: false, className: "wolken-bild" }).addTo(RV.map); RV.overlay?.bringToFront(); }
   else RV.wolken.setUrl(url);
 }
 function radarVorrechnen() {
   // übrige Bilder in Leerlaufzeiten vorbereiten, damit das Abspielen flüssig läuft
-  const R = S.radar; if (!R || !RV.idx) return;
+  const E = ebene(), R = E.R; if (!R || !E.idx) return;
   const offen = R.frames.map((_, i) => i).filter(i => !R.urls[i]);
   const spaeter = window.requestIdleCallback || (fn => setTimeout(fn, 30));
-  const weiter = () => { const i = offen.shift(); if (i == null || S.radar !== R) return; frameUrl(i); spaeter(weiter); };
+  const weiter = () => { const i = offen.shift(); if (i == null || ebene().R !== R) return; frameUrl(i, E); spaeter(weiter); };
   spaeter(weiter);
 }
 function zeigeFrame(i) {
   const R = S.radar; if (!R || !RV.overlay) return;
-  RV.i = i; RV.overlay.setUrl(frameUrl(i)); $("#rslider").value = i;
+  RV.i = i; $("#rslider").value = i;
+  const E = ebene(), j = E.key === "de" ? naechsterFrame(E.R, R.frames[i].t) : i;
+  if (RV.overlayEbene !== E.key) {   // Ebene gewechselt: Bild an neuer Stelle
+    RV.overlay.remove(); RV.overlayEbene = E.key;
+    RV.overlay = window.L.imageOverlay(frameUrl(j, E), [[E.bounds.s, E.bounds.w], [E.bounds.n, E.bounds.e]], { opacity: .9, interactive: false, className: "radar-bild" }).addTo(RV.map);
+  } else RV.overlay.setUrl(frameUrl(j, E));
   wolkenZeigen();
   const f = R.frames[i], diff = Math.round((f.t.getTime() - Date.now()) / 60e3);
   $("#rtime").textContent = `${hm(f.t)} Uhr`;
-  const trocken = (R.maxMm?.[i] ?? 1) < 0.1 ? " · im Umkreis kein Niederschlag" : "";
+  const trocken = E.key === "nah" && (R.maxMm?.[i] ?? 1) < 0.1 ? " · im Umkreis kein Niederschlag" : E.key === "de" ? " · ganz Deutschland, 15-Minuten-Schritte" : "";
   $("#rrel").textContent = (Math.abs(diff) <= 3 ? "jetzt" : diff < 0 ? `vor ${-diff} Min, gemessen` : `in ${diff} Min, Vorhersage`) + trocken;
 }
 function setPlayIcon() {
@@ -3230,6 +3320,8 @@ document.addEventListener("click", async e => {
     }
     case "extras": S.settings.extras = !S.settings.extras; speichere(); render(); if (S.settings.extras) { ladePegel().then(render).catch(() => { }); ladeLage().then(render).catch(() => { }); } break;
     case "teilen": teilen(); break;
+    case "rzoom": if (RV.map) { if (arg === "de") RV.map.fitBounds([[47.2, 5.8], [55.1, 15.1]]); else { const p = aktOrt(); RV.map.setView([p.lat, p.lon], 8.5); } } break;
+    case "regenradar": S.tab = "radar"; S.eSeite = null; render(); setTimeout(() => $("#rchartblk")?.scrollIntoView({ behavior: "smooth", block: "start" }), 350); break;
     case "update": updatePruefen(true); break;
     case "pwahl": {
       const s = arg ? (S.pegelListe?.liste || []).find(x => x.id === arg) || S.settings.pegelWahl : null;
