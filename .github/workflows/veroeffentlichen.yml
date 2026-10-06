@@ -1,7 +1,7 @@
 # Baut die Wetter-App und veröffentlicht sie auf GitHub Pages.
-# Läuft bei jeder Änderung im Repository und zusätzlich zweimal täglich:
-#   ca. 07:05 Uhr – Waldbrand- und Graslandindex (DWD aktualisiert um 7 Uhr)
-#   ca. 11:15 Uhr – Pollenflug und Biowetter (DWD aktualisiert um 11 Uhr)
+# Läuft bei jeder Änderung im Repository. Die täglichen DWD-Daten (Feuerindizes um 7 Uhr,
+# Pollen/Biowetter um 11 Uhr) holt jetzt der eigene Push-Server bei Hetzner – pünktlich
+# über cron-job.org. Der Abruf hier dient nur noch als Rückfall.
 # Einmalig nötig: Settings → Pages → Source: "GitHub Actions".
 name: Wetter-App veröffentlichen
 
@@ -9,13 +9,6 @@ on:
   push:
     branches: [main]
     paths-ignore: ["**.md"]   # reine Text-Änderungen (README) lösen nichts aus
-  schedule:
-    # GitHub rechnet in UTC und kennt keine Sommerzeit. Darum je zwei Termine;
-    # der Schritt "Uhrzeit prüfen" lässt nur die Läufe zu, die nach deutscher Zeit passen.
-    - cron: "5 5 * * *"     # 07:05 Uhr Sommerzeit
-    - cron: "5 6 * * *"     # 07:05 Uhr Winterzeit
-    - cron: "15 9 * * *"    # 11:15 Uhr Sommerzeit
-    - cron: "15 10 * * *"   # 11:15 Uhr Winterzeit
   workflow_dispatch:
 
 permissions:
