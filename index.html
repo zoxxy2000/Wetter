@@ -253,6 +253,10 @@ img.wi{display:block;flex:none;pointer-events:none}
 .jk-sonne .mitte{text-align:center}.jk-sonne .rechts{text-align:right}
 .jk-mond{display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--ink) 8%,transparent);position:relative;font-size:13px;color:var(--muted)}
 .jk-mond b{display:block;font:600 14px var(--font);color:var(--ink)}
+
+.wisch-l{animation:eVor .22s ease-out}
+.wisch-r{animation:eZurueck .22s ease-out}
+@media (prefers-reduced-motion:reduce){.wisch-l,.wisch-r{animation:none}}
 /* ---------- Kacheln als Einstieg, Details im Blatt ---------- */
 .gk[role=button]{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s ease}
 .gk[role=button]:active{transform:scale(.97)}
@@ -3503,9 +3507,40 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#sheet
     if (x0 == null) return;
     const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
     if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return;
-    const o = alleOrte(); if (o.length < 2) return;
+    const o = alleOrte(); if (o.length < 2) return;   // mit nur einem Ort wechselt das Wischen den Bereich (siehe unten)
     const i = o.findIndex(p => p.id === aktOrt().id), n = o[(i + (dx < 0 ? 1 : -1) + o.length) % o.length];
     S.curId = n.id; S.selHour = 0; S.openDay = null; speichere(); render(); aktualisiere();
+  }, { passive: true });
+})();
+// Wischen zwischen den Bereichen (Wetter, Radar, Historisch, Warnungen, Einstellungen)
+(() => {
+  const REITER = ["wetter", "radar", "historisch", "warnungen", "orte"];
+  let st = null;
+  const quer = el => {   // nicht wischen, wo man selbst waagerecht scrollt oder schiebt
+    for (let e = el; e && e !== document.body; e = e.parentElement) {
+      if (e.matches?.("input,select,textarea,#map,.leaflet-container,.mg-scroll,#sheet,.rslider")) return true;
+      const cs = getComputedStyle(e);
+      if (/(auto|scroll)/.test(cs.overflowX) && e.scrollWidth > e.clientWidth + 2) return true;
+    }
+    return false;
+  };
+  document.addEventListener("touchstart", e => {
+    if (e.touches.length !== 1 || !$("#sheet").hidden) { st = null; return; }
+    const t = e.target;
+    if (t.closest("#sky") && alleOrte().length > 1) { st = null; return; }   // dort wechselt Wischen den Ort
+    if (quer(t)) { st = null; return; }
+    st = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+  }, { passive: true });
+  document.addEventListener("touchend", e => {
+    if (!st) return;
+    const dx = e.changedTouches[0].clientX - st.x, dy = e.changedTouches[0].clientY - st.y, dt = Date.now() - st.t; st = null;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.7 || dt > 700) return;
+    if (S.tab === "orte" && S.eSeite) { if (dx > 0) einstOeffnen(null); return; }   // in Unterseiten: nach rechts = zurück
+    const i = REITER.indexOf(S.tab), ni = i + (dx < 0 ? 1 : -1);
+    if (ni < 0 || ni >= REITER.length) return;
+    S.tab = REITER[ni]; S.eSeite = null; if (S.tab !== "radar") stopPlay();
+    render(); window.scrollTo(0, 0);
+    const el = $("#tab-" + S.tab); if (el) { el.classList.remove("wisch-l", "wisch-r"); void el.offsetWidth; el.classList.add(dx < 0 ? "wisch-l" : "wisch-r"); }
   }, { passive: true });
 })();
 document.addEventListener("visibilitychange", () => {
