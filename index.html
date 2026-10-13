@@ -247,6 +247,7 @@ img.wi{display:block;flex:none;pointer-events:none}
 .jk-fort{height:5px;border-radius:3px;background:var(--soft);margin-top:10px;overflow:hidden;position:relative}
 .jk-fort i{display:block;height:100%;border-radius:3px;background:var(--c)}
 .jk-bogen{display:block;width:100%;height:auto;margin:4px 0 -6px;position:relative}
+.jk-hinweis{font:500 11px var(--font);fill:var(--muted);text-anchor:middle}
 .jk-sonne{display:grid;grid-template-columns:1fr 1fr 1fr;position:relative}
 .jk-sonne b{display:block;font:600 20px var(--num)}
 .jk-sonne span{font-size:12px;color:var(--muted)}
@@ -1384,22 +1385,32 @@ function mondSvg(ph, s = 30) {
   const d = `M${c} ${c - r} A${r} ${r} 0 0 ${zu ? 1 : 0} ${c} ${c + r} A${rx.toFixed(2)} ${r} 0 0 ${zu ? (k > 0 ? 0 : 1) : (k > 0 ? 1 : 0)} ${c} ${c - r}Z`;
   return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" aria-hidden="true"><circle cx="${c}" cy="${c}" r="${r}" fill="color-mix(in srgb,var(--ink) 22%,transparent)"/><path d="${d}" fill="#F3D27C"/><circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="color-mix(in srgb,var(--ink) 25%,transparent)"/></svg>`;
 }
-function sonnenBogen(st, now) {
+function sonnenBogen(st, now, mo) {
   if (!st) return "";
   const f = (now - st.rise) / (st.set - st.rise), tag = f >= 0 && f <= 1, fc = clamp(f, 0, 1);
   const P = t => [150 - 125 * Math.cos(Math.PI * t), 74 - 58 * Math.sin(Math.PI * t)];
   const [sx, sy] = P(fc);
+  // Mond nach Himmelsrichtung (Ost links, West rechts) und Höhe, sichtbar sobald er über dem Horizont steht
+  let mond = "";
+  if (mo && mo.alt > -0.5) {
+    const mx = 150 + 125 * clamp(mo.az / 110, -1, 1), my = 74 - 58 * clamp(mo.alt / 60, 0, 1) - 4;
+    const s = 22, glanz = tag ? .55 : 1;
+    mond = `<g transform="translate(${(mx - s / 2).toFixed(1)} ${(my - s / 2).toFixed(1)})" opacity="${glanz}">${tag ? "" : `<circle cx="${s / 2}" cy="${s / 2}" r="${s * .85}" fill="#F3D27C" opacity=".16"/>`}${mondSvg(mo.phase, s).replace(/^<svg[^>]*>|<\/svg>$/g, "")}</g>`;
+  }
   return `<svg class="jk-bogen" viewBox="0 0 300 88" aria-hidden="true">
     <defs><linearGradient id="sbg" x1="0" x2="1"><stop offset="0" stop-color="#F2A93B"/><stop offset="1" stop-color="#EE7A22"/></linearGradient></defs>
     <line x1="10" x2="290" y1="74" y2="74" stroke="var(--line)" stroke-width="1.5"/>
-    <path d="M25 74 A125 58 0 0 1 275 74" fill="none" stroke="var(--line)" stroke-width="2.5" stroke-dasharray="4 5"/>
-    ${tag ? `<path d="M25 74 A125 58 0 0 1 ${sx.toFixed(1)} ${sy.toFixed(1)}" fill="none" stroke="url(#sbg)" stroke-width="3" stroke-linecap="round"/>
-    <circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="11" fill="#FFD66B" opacity=".35"/><circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="6.5" fill="#FFC23D"/>` : ""}
+    <path d="M25 74 A125 58 0 0 1 275 74" fill="none" stroke="${tag ? "var(--line)" : "color-mix(in srgb,#8E9BD8 45%,transparent)"}" stroke-width="2.5" stroke-dasharray="4 5"/>
+    ${tag ? `<path d="M25 74 A125 58 0 0 1 ${sx.toFixed(1)} ${sy.toFixed(1)}" fill="none" stroke="url(#sbg)" stroke-width="3" stroke-linecap="round"/>` : ""}
+    ${mond}
+    ${tag ? `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="11" fill="#FFD66B" opacity=".35"/><circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="6.5" fill="#FFC23D"/>` : ""}
+    ${!tag && !mond ? `<text x="150" y="58" class="jk-hinweis">Mond unter dem Horizont</text>` : ""}
   </svg>`;
 }
 function jetztHtml(d, p) {
   const c = d.cur, t = d.days[0];
   const now = new Date(), st = Astro.times(now, p.lat, p.lon), mo = Astro.moon(now, p.lat, p.lon);
+  const morgen = st && now > st.set ? Astro.times(addDays(now, 1), p.lat, p.lon) : null;
   const len = st ? (st.set - st.rise) / 3600e3 : null;
   const vis = c.vis == null ? "–" : c.vis >= 10000 ? "> 10" : c.vis < 1000 ? nf(c.vis / 1000, 1) : nf(c.vis / 1000, 0);
   const bf = beaufort(c.wind), pr = c.prec1h ?? 0;
@@ -1412,8 +1423,8 @@ function jetztHtml(d, p) {
   k.push(jKachel({ sym: "sicht", farbe: "#6B8AA6", lab: "Sicht", wert: `${vis} <small>km</small>`, unter: `Bewölkung ${c.cloud == null ? "–" : rnd(c.cloud) + " %"}`, fort: c.cloud ?? 0 }));
   k.push(jKachel({ sym: "uv", farbe: G_FARBEN[uvSt], lab: "UV-Index", wert: `${t?.uv == null ? "–" : nf(t.uv, 0)} <small>max</small>`, unter: uvText(t?.uv) || "–", fort: t?.uv == null ? 0 : Math.min(100, t.uv / 11 * 100) }));
   const sonne = `<div class="gk jk breit sonne" style="--c:#F2A93B"><div class="gk-top"><span class="gk-ic">${jsym("sonne")}</span>Sonne und Mond</div>
-    ${sonnenBogen(st, now)}
-    <div class="jk-sonne"><div><b class="num">${st ? hm(st.rise) : "–"}</b><span>Aufgang</span></div><div class="mitte"><b class="num">${len ? `${Math.floor(len)}:${pad(Math.round((len % 1) * 60))}` : "–"}</b><span>Std Tageslicht</span></div><div class="rechts"><b class="num">${st ? hm(st.set) : "–"}</b><span>Untergang</span></div></div>
+    ${sonnenBogen(st, now, mo)}
+    <div class="jk-sonne"><div><b class="num">${morgen ? hm(morgen.rise) : st ? hm(st.rise) : "–"}</b><span>${morgen ? "Aufgang morgen" : "Aufgang"}</span></div><div class="mitte"><b class="num">${len ? `${Math.floor(len)}:${pad(Math.round((len % 1) * 60))}` : "–"}</b><span>Std Tageslicht</span></div><div class="rechts"><b class="num">${st ? hm(st.set) : "–"}</b><span>Untergang</span></div></div>
     <div class="jk-mond">${mondSvg(mo.phase)}<span><b>${mondName(mo.phase)}</b>${Math.round(mo.fraction * 100)} % beleuchtet</span></div></div>`;
   return `<section class="blk"><h2>Jetzt gemessen</h2><div class="gkacheln">${k.join("")}${sonne}</div></section>`;
 }
