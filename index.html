@@ -258,6 +258,12 @@ img.wi{display:block;flex:none;pointer-events:none}
 .wisch-l{animation:eVor .22s ease-out}
 .wisch-r{animation:eZurueck .22s ease-out}
 @media (prefers-reduced-motion:reduce){.wisch-l,.wisch-r{animation:none}}
+
+.start{text-align:center;padding:26px 18px;background:var(--surface);border-radius:20px;margin-top:14px}
+.start-ic{display:grid;place-items:center;margin-bottom:6px}
+.start h2{font:600 20px var(--font);margin:4px 0 6px}
+.start p{color:var(--muted);font-size:14.5px;margin:0 0 16px}
+.start .btn{display:block;width:100%;margin-top:8px}
 /* ---------- Kacheln als Einstieg, Details im Blatt ---------- */
 .gk[role=button]{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s ease}
 .gk[role=button]:active{transform:scale(.97)}
@@ -812,8 +818,9 @@ function tempFarbe(t) {
    Zustand
    ===================================================================== */
 const S = {
-  places: store.get("places", null) || [{ id: "p" + Date.now().toString(36), ...CFG.start }],
-  gps: store.get("gps", { on: false, lat: null, lon: null, label: "" }),
+  places: store.get("places", null) || [],
+  // Erststart: direkt den aktuellen Standort verwenden (bestehende Nutzer behalten ihre Einstellung)
+  gps: store.get("gps", null) || { on: store.get("places", null) == null, lat: null, lon: null, label: "" },
   curId: store.get("cur", null),
   settings: Object.assign({ extras: true, notify: false, gesundheit: true, radarWolken: true, pollenRegion: 42, pollenArten: ["Hasel", "Erle", "Esche", "Birke", "Graeser", "Roggen", "Beifuss", "Ambrosia"], bioZone: "C", schwellen: { ...CFG.schwellen } }, store.get("settings", {})),
   lage: store.get("lage", null),
@@ -829,7 +836,10 @@ function speichere() {
 function alleOrte() {
   const a = [];
   if (S.gps.on && S.gps.lat != null) a.push({ id: "gps", name: "Aktueller Standort", label: S.gps.label || "", gemeinde: S.gps.gemeinde || "", lat: S.gps.lat, lon: S.gps.lon, station: null, gps: true });
-  return a.concat(S.places);
+  const alle = a.concat(S.places);
+  if (alle.length) return alle;
+  // noch kein Ort: Platzhalter, bis der Standort da ist oder ein Ort gesucht wurde
+  return [{ id: "keinort", platzhalter: true, name: S.gps.on && !S.gpsFehler ? "Standort wird ermittelt …" : "Kein Ort gewählt", label: "", lat: 51.16, lon: 10.45, station: null }];
 }
 function aktOrt() { const a = alleOrte(); return a.find(p => p.id === S.curId) || a[0]; }
 function ortQuery(p, mitStation = true) { return `lat=${p.lat.toFixed(4)}&lon=${p.lon.toFixed(4)}` + (mitStation && p.station ? `&dwd_station_id=${encodeURIComponent(p.station)}` : ""); }
@@ -1038,8 +1048,9 @@ let refreshTimer = null;
 async function aktualisiere() {
   if (S.busy) return;
   S.busy = true; $("#refresh").classList.add("busy");
-  if (S.gps.on) await gpsAktualisieren(true);
+  if (S.gps.on) S.gpsFehler = !(await gpsAktualisieren(true));
   const p = aktOrt();
+  if (p.platzhalter) { S.busy = false; $("#refresh").classList.remove("busy"); render(); return; }
   try { await ladeOrt(p); S.err = null; }
   catch (e) { S.err = e.message; if (!S.daten[p.id]) toast(e.message); }
   render();
@@ -1097,6 +1108,20 @@ const istPorta = p => {
   const txt = `${p.name} ${p.label || ""} ${p.gemeinde || ""}`, km = kmZwischen(p.lat, p.lon, 52.2333, 8.9167);
   return /porta westfalica/i.test(txt) || km < 4 || (km < 16 && PORTA_ORTSTEILE.some(o => txt.includes(o)));
 };
+const STADTSZENEN = [
+  { id: "minden", lat: 52.2896, lon: 8.9146, r: 7, name: "minden" },
+  { id: "rinteln", lat: 52.1883, lon: 9.0794, r: 7, name: "rinteln" },
+  { id: "greifswald", lat: 54.0931, lon: 13.3878, r: 8, name: "greifswald" },
+  { id: "kellenhusen", lat: 54.1937, lon: 11.0628, r: 4, name: "kellenhusen" }
+];
+function szeneFuer(p) {
+  if (!p || p.platzhalter) return null;
+  if (istPorta(p)) return "porta";
+  const wort = ` ${(p.name || "")} ${(p.gemeinde || "")} `.toLowerCase();
+  for (const s of STADTSZENEN) if (new RegExp(`[\\s(]${s.name}[\\s),]`).test(wort) && kmZwischen(p.lat, p.lon, s.lat, s.lon) < 25) return s.id;
+  const nah = STADTSZENEN.map(s => ({ s, km: kmZwischen(p.lat, p.lon, s.lat, s.lon) })).filter(x => x.km < x.s.r).sort((a, b) => a.km - b.km)[0];
+  return nah ? nah.s.id : null;
+}
 function renderHero(p, d) {
   const orte = alleOrte();
   $("#h-place").textContent = p.name;
@@ -1104,8 +1129,8 @@ function renderHero(p, d) {
   $("#h-dots").innerHTML = orte.length > 1 ? orte.map(o => `<i class="${o.id === p.id ? "on" : ""}"></i>`).join("") : "";
   const c = d?.cur, heute = d?.days?.[0];
   const sun = Astro.sun(new Date(), p.lat, p.lon);
-  $("#h-temp").textContent = c?.temp != null ? deg(c.temp) : "–";
-  $("#h-cond").textContent = c ? zustand(c.icon, { prec: c.prec1h, cloud: c.cloud, night: sun.alt < -2 }) : (S.err ? "Keine Daten" : "Lädt …");
+  $("#h-temp").textContent = c?.temp != null ? deg(c.temp) : p.platzhalter ? "" : "–";
+  $("#h-cond").textContent = c ? zustand(c.icon, { prec: c.prec1h, cloud: c.cloud, night: sun.alt < -2 }) : p.platzhalter ? "" : (S.err ? "Keine Daten" : "Lädt …");
   $("#h-hilo").innerHTML = heute ? `<span>Höchst <b>${deg(heute.max)}</b></span><span>Tiefst <b>${deg(heute.min)}</b></span>${c?.felt != null ? `<span>Gefühlt <b>${deg(c.felt)}</b></span>` : ""}` : "";
   const nc = nowcast();
   $("#h-rain").innerHTML = "";
@@ -1124,13 +1149,19 @@ function renderHero(p, d) {
     if (nc) { precip = nc.jetzt; if (precip >= 0.1 && !["rain", "snow", "sleet", "thunder"].includes(typ)) typ = (c?.temp ?? 5) <= 0.5 ? "snow" : "rain"; }
     if (["rain", "snow", "sleet", "thunder"].includes(typ) && precip < 0.2) precip = 0.4;
     const upcoming = nc && !(nc.jetzt >= 0.1) && nc.start != null ? clamp((60 - nc.start) / 60, 0, 1) : 0;
-    Sky.set({ lat: p.lat, lon: p.lon, cloud: (c?.cloud ?? 40) / 100, precip, type: typ, wind: c?.wind ?? 10, upcoming, porta: istPorta(p) });
-  } else Sky.set({ lat: p.lat, lon: p.lon, porta: istPorta(p) });
+    Sky.set({ lat: p.lat, lon: p.lon, cloud: (c?.cloud ?? 40) / 100, precip, type: typ, wind: c?.wind ?? 10, upcoming, szene: szeneFuer(p) });
+  } else Sky.set({ lat: p.lat, lon: p.lon, szene: szeneFuer(p) });
 }
 function renderWetter() {
   const p = aktOrt(), d = S.daten[p.id];
   renderHero(p, d);
   const body = $("#wetter-body");
+  if (p.platzhalter) {
+    body.innerHTML = `<div class="start"><div class="start-ic">${ico("partly-cloudy-day", 46)}</div><h2>Willkommen bei PW-Wetter</h2>
+      <p>${S.gps.on && !S.gpsFehler ? "Dein Standort wird ermittelt. Bitte erlaube den Zugriff, wenn das Handy danach fragt." : "Damit die App Wetter anzeigen kann, braucht sie einen Ort."}</p>
+      <button class="btn" data-a="startgps">Aktuellen Standort verwenden</button><button class="btn ghost" data-a="eseite:orte">Ort suchen</button></div>`;
+    return;
+  }
   if (!d) { body.innerHTML = `<div class="empty">${S.err ? esc(S.err) : "Wetterdaten werden geladen …"}</div>`; return; }
   let h = "";
   // Warnungen
@@ -1856,13 +1887,13 @@ async function pushAnfrage(daten) {
   return j;
 }
 function pushOrt() {
-  const P = pushEinst(), orte = S.places;
+  const P = pushEinst(), orte = alleOrte().filter(o => !o.platzhalter);
   return orte.find(o => o.id === P.ortId) || orte.find(o => o.id === S.curId) || orte[0];
 }
 function pushDaten() {
   const P = pushEinst(), o = pushOrt(), st = S.settings;
   return {
-    ort: o.name, lat: o.lat, lon: o.lon, station: o.station || "",
+    ort: o.gps ? (o.label || "deinem Standort") : o.name, lat: o.lat, lon: o.lon, station: o.station || "",
     morgen: P.morgen, morgenZeit: P.morgenZeit, warnStufe: P.warnStufe, entwarnung: P.entwarnung, regen: P.regen,
     einsatz: P.einsatz, boen: st.schwellen.boen, frost: st.schwellen.frost, pegel: st.schwellen.pegel ?? null,
     pegelStation: S.pegel?.id || S.settings.pegelWahl?.id || S.pegelAuto?.id || "", pegelName: S.pegel ? pegelName() : "",
@@ -1881,6 +1912,7 @@ async function pushAbo(neu) {
 async function pushEinschalten() {
   if (!pushMoeglich()) return;
   if (istIOS && !istInstalliert()) { toast("Auf dem iPhone zuerst über Teilen → „Zum Home-Bildschirm“ installieren."); return; }
+  if (!pushOrt()) { toast("Bitte zuerst einen Ort festlegen oder den Standort einschalten."); return; }
   const perm = await Notification.requestPermission();
   if (perm !== "granted") { toast("Benachrichtigungen wurden nicht erlaubt. Das lässt sich in den Systemeinstellungen ändern."); return; }
   try {
@@ -1920,7 +1952,7 @@ function pushHtml(sw) {
   if (istIOS && !istInstalliert()) return `<div class="plist"><div class="setting"><div>Erst installieren<span>Auf iPhone und iPad gibt es Push-Nachrichten nur für installierte Web-Apps: in Safari auf Teilen tippen, dann „Zum Home-Bildschirm“. Danach die App vom Home-Bildschirm öffnen und hier einschalten.</span></div></div></div>`;
   const sel = (id, opts, wert) => `<select id="${id}">${opts.map(([v, n]) => `<option value="${v}"${String(v) === String(wert) ? " selected" : ""}>${esc(n)}</option>`).join("")}</select>`;
   let h = `<div class="plist"><div class="setting"><div>Push-Benachrichtigungen<span>Gespeichert wird nur eine technische Zustelladresse, keine Mailadresse.</span></div>${sw(P.on, "push", "Push-Benachrichtigungen")}</div>
-    ${P.on ? `<div class="thr one"><div><label for="p-ort">Für diesen Ort</label>${sel("p-ort", S.places.map(o => [o.id, o.name]), pushOrt().id)}</div></div>` : ""}</div>`;
+    ${P.on ? `<div class="thr one"><div><label for="p-ort">Für diesen Ort</label>${sel("p-ort", alleOrte().filter(o => !o.platzhalter).map(o => [o.id, o.gps ? `Aktueller Standort${o.label ? " (" + o.label + ")" : ""}` : o.name]), pushOrt()?.id)}</div></div>` : ""}</div>`;
   if (!P.on) return h;
   h += elabel("Morgenübersicht") + `<div class="plist">
     <div class="setting"><div>Jeden Morgen<span>Temperaturen, Regen, Böen, Warnungen${P.einsatz ? ", Pegel, WBI/GLFI" : ""}${P.pollen ? ", Pollen" : ""}</span></div>${sw(P.morgen, "pset:morgen", "Morgenübersicht")}</div>
@@ -1984,7 +2016,7 @@ function esymbol(id, farbe, gr = 30) {
 function eZusammenfassung(id) {
   const st = S.settings;
   switch (id) {
-    case "orte": { const n = S.places.map(o => o.name); return (n.length > 2 ? `${n.slice(0, 2).join(", ")} und ${n.length - 2} weitere` : n.join(", ")) + (S.gps.on ? " · Standort an" : ""); }
+    case "orte": { const n = S.places.map(o => o.name); if (!n.length) return S.gps.on ? "Aktueller Standort" : "Noch kein Ort"; return (n.length > 2 ? `${n.slice(0, 2).join(", ")} und ${n.length - 2} weitere` : n.join(", ")) + (S.gps.on ? " · Standort an" : ""); }
     case "push": {
       if (!CFG.push.server) return st.notify ? "Mitteilungen an" : "Aus";
       const P = pushEinst(); if (!P.on) return "Aus";
@@ -2011,7 +2043,7 @@ function einstKopf(s, text) {
 }
 const elabel = t => `<div class="elabel">${t}</div>`;
 function eOrteHtml(sw) {
-  const orte = alleOrte(), cur = aktOrt();
+  const orte = alleOrte().filter(o => !o.platzhalter), cur = aktOrt();
   let h = elabel("Meine Orte") + `<div class="plist">`;
   orte.forEach(o => {
     const c = S.daten[o.id]?.cur;
@@ -2183,7 +2215,7 @@ const Sky = (() => {
   const mix = (a, b, t) => a.map((v, i) => lerp(v, b[i], t));
   const css = (c, a = 1) => `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${a})`;
   let cv, ctx, W = 0, H = 0, dpr = 1, raf = 0, on = true, last = 0, reduced = false;
-  const st = { lat: 52.2, lon: 8.9, cloud: .35, precip: 0, type: null, wind: 10, upcoming: 0, porta: false };
+  const st = { lat: 52.2, lon: 8.9, cloud: .35, precip: 0, type: null, wind: 10, upcoming: 0, szene: null };
   let erst = true, hatteDaten = false; // erste echte Wetterdaten: sofort zeigen statt einblenden
   let col = null, ziel = null, astro = null, astroT = 0, spriteT = 0;
   let clouds = [], drops = [], flakes = [], stars = [], hills = [], fogB = [];
@@ -2210,7 +2242,7 @@ const Sky = (() => {
   function set(o) {
     const vorher = JSON.stringify(st); Object.assign(st, o);
     if (JSON.stringify(st) === vorher || !W) return;
-    const portaNeu = st.porta !== JSON.parse(vorher).porta;
+    const portaNeu = st.szene !== JSON.parse(vorher).szene;
     ziel = farben();
     const ersteDaten = "cloud" in o && !hatteDaten; if ("cloud" in o) hatteDaten = true;
     if (erst || ersteDaten || !col) { col = ziel; erst = false; baueWolken(true); } else baueWolken(false);
@@ -2260,7 +2292,7 @@ const Sky = (() => {
       const warm = r();
       stars.push({ x: r() * W, y: Math.pow(r(), 1.3) * H * .78, rr: (Math.pow(r(), 3) * 1.5 + .35) * dpr, ph: r() * 6.28, sp: .6 + r() * 1.8, c: warm < .15 ? "255,226,196" : warm > .88 ? "205,220,255" : "255,255,255" });
     }
-    hills = standardBerge(); PZ = null;
+    hills = standardBerge(); PZ = null; SZ = null;
     fogB = []; for (let i = 0; i < 5; i++) fogB.push({ y: .42 + i * .11 + r() * .04, sp: (.15 + r() * .35) * dpr, off: r() * W, h: (40 + r() * 50) * dpr });
   }
   function standardBerge() {
@@ -2355,6 +2387,229 @@ const Sky = (() => {
     fill(PZ.raps, [214, 196, 72], .05);
     if (nacht < .9) PZ.blumen.forEach(([x, y, c, g]) => { ctx.globalAlpha = (1 - nacht) * .8; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x * W, y * H, g * 1.6 * dpr, 0, 6.283); ctx.fill(); });
     ctx.globalAlpha = 1;
+  }
+  /* =================================================================
+     Weitere Stadtszenen (stilisiert): Minden, Rinteln, Greifswald, Kellenhusen
+     ================================================================= */
+  let SZ = null;   // Zwischenspeicher der Formen je Szene
+  const zp = pts => { const p = new Path2D(); pts.forEach(([x, y], i) => i ? p.lineTo(x * W, y * H) : p.moveTo(x * W, y * H)); p.closePath(); return p; };
+  function zKamm(von, bis, f, kronen, tiefe) {
+    const pts = [], n = Math.max(8, Math.round(kronen * 6));
+    for (let k = 0; k <= n; k++) { const u = von + (bis - von) * k / n; pts.push([u, f(u) - tiefe * Math.abs(Math.sin(k / 6 * Math.PI)) * (.6 + .4 * Math.sin(u * 91))]); }
+    return pts;
+  }
+  const zNacht = () => clamp((-astro.sun.alt - 2) / 6, 0, 1);
+  const zFill = (p, rgb, tiefe, a = 1) => { ctx.fillStyle = css(farbeLand(rgb, tiefe), a); ctx.fill(p); };
+  function zWasser(path, y0, t, schimmer = 8, x0 = .5, breite = .4) {
+    const nacht = zNacht(), wg = ctx.createLinearGradient(0, y0 * H, 0, H);
+    wg.addColorStop(0, css(mix(col.hor, [255, 255, 255], .2))); wg.addColorStop(1, css(mix(col.mid, mix(col.zen, [30, 60, 95], .35), .5)));
+    ctx.fillStyle = wg; ctx.fill(path);
+    ctx.save(); ctx.clip(path); ctx.strokeStyle = `rgba(255,255,255,${(.2 + .08 * Math.sin(t * 1.2)) * (1 - nacht * .6)})`; ctx.lineWidth = 1 * dpr;
+    for (let k = 0; k < schimmer; k++) {
+      const y = (y0 + .01 + k * (1 - y0) / schimmer) * H, x = (x0 + breite * Math.sin(k * 2.3)) * W + Math.sin(t * .7 + k) * 4 * dpr, l = (10 + k * 4) * W / 390;
+      ctx.beginPath(); ctx.moveTo(x - l, y); ctx.lineTo(x + l, y); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // Hilfen zum Zeichnen von Gebäuden in Pixeln (s = Maßstab)
+  const R_ = (x, y, w, h, c) => { ctx.fillStyle = css(c); ctx.fillRect(x, y, w, h); };
+  const P_ = (pts, c) => { ctx.fillStyle = css(c); ctx.beginPath(); pts.forEach(([a, b], i) => i ? ctx.lineTo(a, b) : ctx.moveTo(a, b)); ctx.closePath(); ctx.fill(); };
+  function fensterLicht(liste, nacht, s) {   // warme Fenster in der Dämmerung und nachts
+    if (nacht < .05) return;
+    ctx.fillStyle = `rgba(255,214,140,${.85 * nacht})`;
+    liste.forEach(([x, y, w, h]) => ctx.fillRect(x, y, (w || 1.6) * s, (h || 2.2) * s));
+  }
+  function haeuserReihe(x0, x1, yBasis, s, r, farben, giebel = false) {
+    // Dächer und Fassaden einer Altstadt-Silhouette; gibt Fensterpositionen zurück
+    const fenster = []; let x = x0;
+    while (x < x1) {
+      const w = (14 + r() * 12) * s, h = (12 + r() * 12) * s, dach = (7 + r() * 7) * s, f = farben[Math.floor(r() * farben.length)];
+      R_(x, yBasis - h, w, h + 2, farbeLand(f, .12));
+      if (giebel) {   // Weserrenaissance: Treppen- oder Volutengiebel zur Straße
+        const st = 3, gw = w / (st * 2);
+        const pts = [[x, yBasis - h]]; for (let k = 0; k < st; k++) { pts.push([x + gw * k, yBasis - h - dach * (k + 1) / st], [x + gw * (k + 1), yBasis - h - dach * (k + 1) / st]); }
+        for (let k = st; k > 0; k--) { pts.push([x + w - gw * k, yBasis - h - dach * k / st], [x + w - gw * (k - 1), yBasis - h - dach * (k - 1) / st]); }
+        P_(pts, farbeLand(mix(f, [255, 255, 255], .12), .12));
+        R_(x + w / 2 - 1.2 * s, yBasis - h - dach * .55, 2.4 * s, 3 * s, farbeLand([70, 60, 50], .12));
+      } else P_([[x - 1 * s, yBasis - h], [x + w / 2, yBasis - h - dach], [x + w + 1 * s, yBasis - h]], farbeLand([88, 62, 54], .12));
+      for (let fy = 0; fy < 2; fy++) for (let fx = 0; fx < 3; fx++) if (r() < .55) fenster.push([x + (3 + fx * (w / s - 6) / 2.4) * s, yBasis - h + (3 + fy * 5) * s]);
+      x += w + (r() < .3 ? 2 * s : 0);
+    }
+    return fenster;
+  }
+  function kirchturm(x, yBasis, s, o) {   // schlanker Turm mit Helm (Spitze), Maße in Einheiten
+    const { breite = 12, hoehe = 60, helm = 34, stein = [150, 120, 100], dach = [70, 96, 92], uhr = true } = o;
+    R_(x - breite / 2 * s, yBasis - hoehe * s, breite * s, hoehe * s, farbeLand(stein, .1));
+    R_(x - breite / 2 * s, yBasis - hoehe * s, breite * .18 * s, hoehe * s, farbeLand(mix(stein, [0, 0, 0], .18), .1));
+    for (let k = 0; k < 2; k++) R_(x - 1.6 * s, yBasis - (hoehe - 8 - k * 12) * s, 3.2 * s, 6 * s, farbeLand([60, 50, 46], .1));
+    if (uhr) { ctx.fillStyle = css(farbeLand([230, 220, 190], .1)); ctx.beginPath(); ctx.arc(x, yBasis - (hoehe - 30) * s, 2.6 * s, 0, 6.283); ctx.fill(); }
+    P_([[x - (breite / 2 + 1.2) * s, yBasis - hoehe * s], [x, yBasis - (hoehe + helm) * s], [x + (breite / 2 + 1.2) * s, yBasis - hoehe * s]], farbeLand(dach, .1));
+    R_(x - .5 * s, yBasis - (hoehe + helm + 6) * s, 1 * s, 6 * s, farbeLand([200, 170, 90], .1));
+  }
+
+  /* ---------- Minden: Dom mit Westwerk, Marienkirche, Wasserstraßenkreuz über die Weser ---------- */
+  function mindenFormen() {
+    const r = rand(901);
+    const fern = zKamm(0, 1, u => .68 - .03 * Math.exp(-Math.pow((u - .62) / .12, 2)) - .006 * Math.sin(u * 13), 30, .003);  // Weserbergland mit Porta im Süden
+    const ufer = zp([[0, .77], [.4, .765], [1, .76], [1, .835], [0, .845]]);
+    const fluss = zp([[0, .845], [1, .835], [1, 1], [0, 1]]);
+    return { r, fern: zp([[0, 1], ...fern, [1, 1]]), ufer, fluss, wiese: zp([[0, .93], [.45, .95], [.5, 1], [0, 1]]) };
+  }
+  function zeichneMinden(t) {
+    if (!SZ) SZ = mindenFormen();
+    const s = W / 390, nacht = zNacht(), r = rand(902);
+    zFill(SZ.fern, [140, 160, 140], .8);
+    // winziges Kaiser-Wilhelm-Denkmal auf dem fernen Kamm
+    const dx = .62 * W, dy = .65 * H; P_([[dx - 3 * s, dy], [dx - 3 * s, dy - 6 * s], [dx, dy - 9 * s], [dx + 3 * s, dy - 6 * s], [dx + 3 * s, dy]], farbeLand([160, 150, 120], .7));
+    zFill(SZ.ufer, [118, 146, 92], .3);
+    const yB = .775 * H, fenster = [];
+    fenster.push(...haeuserReihe(.42 * W, .58 * W, yB, s, r, [[214, 200, 176], [196, 172, 150], [226, 216, 196]]));
+    // Marienkirche: schlanker Turm mit grünem Helm
+    kirchturm(.53 * W, yB - 8 * s, s, { breite: 11, hoehe: 58, helm: 40, stein: [176, 160, 140], dach: [84, 128, 112] });
+    // Dom: breites Westwerk aus hellem Sandstein mit Arkadenreihen und flachem Helm
+    const x0 = .60 * W, w = 46 * s, h = 76 * s, st = [196, 182, 156];
+    R_(x0, yB - h, w, h, farbeLand(st, .1));
+    R_(x0 + w, yB - 34 * s, 46 * s, 34 * s, farbeLand(mix(st, [0, 0, 0], .08), .12));                        // Langhaus
+    P_([[x0 + w, yB - 34 * s], [x0 + w + 23 * s, yB - 52 * s], [x0 + w + 46 * s, yB - 34 * s]], farbeLand([86, 118, 104], .12));
+    for (let reihe = 0; reihe < 3; reihe++) for (let k = 0; k < 5; k++) {
+      const fx = x0 + (5 + k * 8.4) * s, fy = yB - h + (12 + reihe * 17) * s;
+      ctx.fillStyle = css(farbeLand([92, 80, 66], .1)); ctx.beginPath(); ctx.moveTo(fx, fy + 9 * s); ctx.lineTo(fx, fy + 2 * s); ctx.arc(fx + 2.2 * s, fy + 2 * s, 2.2 * s, Math.PI, 0); ctx.lineTo(fx + 4.4 * s, fy + 9 * s); ctx.fill();
+      if (nacht > .05 && reihe === 2) fenster.push([fx + .6 * s, fy + 3 * s, 3, 5]);
+    }
+    P_([[x0 - 2 * s, yB - h], [x0 + w / 2, yB - h - 22 * s], [x0 + w + 2 * s, yB - h]], farbeLand([78, 112, 100], .1));
+    R_(x0 + w / 2 - .6 * s, yB - h - 30 * s, 1.2 * s, 8 * s, farbeLand([200, 170, 90], .1));
+    fenster.push(...haeuserReihe(.84 * W, 1.02 * W, yB, s, r, [[220, 206, 186], [190, 166, 146]]));
+    if (nacht > .05) { const g = ctx.createRadialGradient(x0 + w / 2, yB - h / 2, 0, x0 + w / 2, yB - h / 2, 60 * s); g.addColorStop(0, `rgba(255,214,150,${.28 * nacht})`); g.addColorStop(1, "rgba(255,214,150,0)"); ctx.fillStyle = g; ctx.fillRect(x0 - 40 * s, yB - h - 40 * s, w + 80 * s, h + 60 * s); }
+    fensterLicht(fenster, nacht, s);
+    // Weser mit dem Kanalbrücken-Bogen des Wasserstraßenkreuzes
+    zWasser(SZ.fluss, .84, t, 6, .55, .35);
+    const by = .83 * H, b0 = .46 * W, b1 = 1.02 * W, n = 6, bw = (b1 - b0) / n, stein = farbeLand([176, 150, 120], .15);
+    ctx.fillStyle = css(stein); ctx.fillRect(b0, by - 9 * s, b1 - b0, 9 * s);
+    R_(b0, by - 11 * s, b1 - b0, 2.5 * s, farbeLand([120, 168, 200], .15));                                      // Kanalwasser oben
+    for (let k = 0; k < n; k++) {
+      const bx = b0 + k * bw; ctx.fillStyle = css(stein); ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by + 12 * s);
+      ctx.lineTo(bx + 4 * s, by + 12 * s); ctx.quadraticCurveTo(bx + bw / 2, by - 2 * s, bx + bw - 4 * s, by + 12 * s); ctx.lineTo(bx + bw, by + 12 * s); ctx.lineTo(bx + bw, by); ctx.fill();
+    }
+    // Schiff auf dem Kanal
+    const sx = (b0 + ((t * 6 * s) % (b1 - b0)));
+    R_(sx, by - 15 * s, 22 * s, 4 * s, farbeLand([60, 70, 86], .12)); R_(sx + 16 * s, by - 19 * s, 5 * s, 4 * s, farbeLand([230, 230, 230], .12));
+    zFill(SZ.wiese, [120, 156, 80], .05);
+  }
+
+  /* ---------- Rinteln: Wesergebirge mit Klippenturm, St. Nikolai, Weserrenaissance-Giebel ---------- */
+  function rintelnFormen() {
+    const kamm = u => .63 - .05 * Math.exp(-Math.pow((u - .8) / .14, 2)) - .012 * Math.sin(u * 7 + 1);
+    return { kamm, berg: zp([[0, 1], ...zKamm(0, 1, kamm, 40, .007), [1, 1]]), fern: zp([[0, 1], ...zKamm(0, 1, u => .66 - .01 * Math.sin(u * 5), 30, .003), [1, 1]]),
+      ufer: zp([[0, .80], [1, .79], [1, .845], [0, .85]]), fluss: zp([[0, .85], [1, .845], [1, 1], [0, 1]]) };
+  }
+  function zeichneRinteln(t) {
+    if (!SZ) SZ = rintelnFormen();
+    const s = W / 390, nacht = zNacht(), r = rand(731);
+    zFill(SZ.fern, [146, 166, 150], .8);
+    zFill(SZ.berg, [86, 122, 72], .35);
+    // Klippenturm: Aussichtsturm aus Bruchstein auf dem Kamm
+    const kx = .8 * W, ky = SZ.kamm(.8) * H + 2 * s;
+    R_(kx - 5 * s, ky - 26 * s, 10 * s, 26 * s, farbeLand([150, 136, 116], .3));
+    for (let k = 0; k < 4; k++) R_(kx - 6 * s + k * 3.4 * s, ky - 29 * s, 2.2 * s, 3 * s, farbeLand([150, 136, 116], .3));
+    const yB = .80 * H;
+    const fenster = haeuserReihe(.42 * W, 1.02 * W, yB, s * 1.3, r, [[226, 206, 160], [214, 186, 150], [236, 226, 206], [196, 150, 120]], true);
+    kirchturm(.66 * W, yB - 26 * s, s, { breite: 14, hoehe: 70, helm: 48, stein: [178, 160, 136], dach: [64, 70, 82] });
+    fensterLicht(fenster, nacht, s);
+    zFill(SZ.ufer, [112, 142, 86], .25);
+    zWasser(SZ.fluss, .85, t, 7, .6, .35);
+  }
+
+  /* ---------- Greifswald: Silhouette mit Dom St. Nikolai, Marienkirche, Jacobikirche, Ryck mit Segelboot ---------- */
+  function greifswaldFormen() {
+    return { land: zp([[0, .80], [.5, .795], [1, .79], [1, .86], [0, .865]]), fluss: zp([[0, .865], [1, .86], [1, 1], [0, 1]]), schilf: rand(55) };
+  }
+  function zeichneGreifswald(t) {
+    if (!SZ) SZ = greifswaldFormen();
+    const s = W / 390, nacht = zNacht(), r = rand(377), yB = .80 * H, ziegel = [168, 92, 70], kupfer = [96, 150, 132];
+    const fenster = haeuserReihe(.40 * W, 1.02 * W, yB, s, r, [[200, 170, 150], [214, 196, 176], [186, 120, 96]]);
+    // Marienkirche („Dicke Marie“): gedrungener Backsteinturm mit Pyramidendach
+    const mx = .52 * W; R_(mx - 11 * s, yB - 52 * s, 22 * s, 52 * s, farbeLand(ziegel, .12)); P_([[mx - 12 * s, yB - 52 * s], [mx, yB - 70 * s], [mx + 12 * s, yB - 52 * s]], farbeLand([110, 70, 60], .12));
+    R_(mx + 11 * s, yB - 30 * s, 40 * s, 30 * s, farbeLand(mix(ziegel, [0, 0, 0], .1), .12)); P_([[mx + 11 * s, yB - 30 * s], [mx + 31 * s, yB - 44 * s], [mx + 51 * s, yB - 30 * s]], farbeLand([120, 76, 64], .12));
+    // Dom St. Nikolai: Backsteinturm mit gestaffelter barocker Haube
+    const dx = .74 * W, b = 16 * s;
+    R_(dx - b / 2, yB - 70 * s, b, 70 * s, farbeLand(ziegel, .1));
+    R_(dx - 6 * s, yB - 82 * s, 12 * s, 12 * s, farbeLand(ziegel, .1));
+    const kup = farbeLand(kupfer, .1);
+    ctx.fillStyle = css(kup);
+    ctx.beginPath(); ctx.ellipse(dx, yB - 82 * s, 7 * s, 6 * s, 0, Math.PI, 0); ctx.fill();
+    R_(dx - 2.4 * s, yB - 96 * s, 4.8 * s, 9 * s, kupfer && farbeLand(kupfer, .1));
+    ctx.beginPath(); ctx.ellipse(dx, yB - 96 * s, 4.4 * s, 4 * s, 0, Math.PI, 0); ctx.fill();
+    R_(dx - 1.4 * s, yB - 106 * s, 2.8 * s, 7 * s, farbeLand(kupfer, .1));
+    ctx.beginPath(); ctx.moveTo(dx - 2.2 * s, yB - 106 * s); ctx.lineTo(dx, yB - 118 * s); ctx.lineTo(dx + 2.2 * s, yB - 106 * s); ctx.fill();
+    R_(dx + b / 2, yB - 34 * s, 44 * s, 34 * s, farbeLand(mix(ziegel, [0, 0, 0], .1), .12)); P_([[dx + b / 2, yB - 34 * s], [dx + b / 2 + 22 * s, yB - 48 * s], [dx + b / 2 + 44 * s, yB - 34 * s]], farbeLand([120, 76, 64], .12));
+    // Jacobikirche: schlanker Turm mit Spitzhelm
+    kirchturm(.93 * W, yB, s, { breite: 11, hoehe: 46, helm: 30, stein: ziegel, dach: [90, 70, 64], uhr: false });
+    fensterLicht(fenster, nacht, s);
+    if (nacht > .05) { const g = ctx.createRadialGradient(dx, yB - 60 * s, 0, dx, yB - 60 * s, 70 * s); g.addColorStop(0, `rgba(255,200,140,${.25 * nacht})`); g.addColorStop(1, "rgba(255,200,140,0)"); ctx.fillStyle = g; ctx.fillRect(dx - 70 * s, yB - 130 * s, 140 * s, 140 * s); }
+    zFill(SZ.land, [120, 152, 92], .2);
+    zWasser(SZ.fluss, .86, t, 7, .5, .4);
+    // Schilf am Ufer
+    const rr = rand(55); ctx.strokeStyle = css(farbeLand([92, 112, 60], .05)); ctx.lineWidth = 1.2 * s;
+    for (let k = 0; k < 40; k++) { const x = rr() * .45 * W, y = (.86 + rr() * .02) * H, l = (8 + rr() * 10) * s; ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 2 * s, y - l / 2, x + Math.sin(t + k) * 1.5 * s, y - l); ctx.stroke(); }
+    // Segelboot auf dem Ryck, zieht langsam vorbei
+    const bx = ((t * 4 * s + .55 * W) % (W * 1.2)) - .1 * W, byy = .9 * H;
+    P_([[bx - 12 * s, byy], [bx + 12 * s, byy], [bx + 9 * s, byy + 4 * s], [bx - 9 * s, byy + 4 * s]], farbeLand([90, 70, 60], .05));
+    R_(bx - .5 * s, byy - 24 * s, 1 * s, 24 * s, farbeLand([80, 70, 60], .05));
+    P_([[bx, byy - 23 * s], [bx + 11 * s, byy - 2 * s], [bx, byy - 2 * s]], farbeLand([246, 242, 232], .05));
+    P_([[bx - 1 * s, byy - 19 * s], [bx - 8 * s, byy - 2 * s], [bx - 1 * s, byy - 2 * s]], farbeLand([236, 230, 216], .05));
+  }
+
+  /* ---------- Kellenhusen: Ostsee, Seebrücke, Strand mit Strandkörben, Möwen ---------- */
+  function kellenhusenFormen() {
+    return { meer: zp([[0, .62], [1, .62], [1, .84], [0, .84]]), wald: zp([[0, 1], ...zKamm(0, .28, u => .655 - .02 * u, 18, .01), [.31, .70], [.36, .78], [.40, .82], [.40, 1]]),
+      strand: zp([[0, .80], [.4, .815], [1, .805], [1, 1], [0, 1]]), duene: zp([[0, .84], [.08, .805], [.2, .81], [.3, .835], [.4, .87], [.44, .9], [.44, 1], [0, 1]]) };
+  }
+  function zeichneKellenhusen(t) {
+    if (!SZ) SZ = kellenhusenFormen();
+    const s = W / 390, nacht = zNacht(), r = rand(42);
+    zWasser(SZ.meer, .62, t, 12, .6, .4);
+    // Horizontlinie und Segelboot weit draußen
+    R_(0, .62 * H - .5 * dpr, W, 1 * dpr, mix(col.hor, [255, 255, 255], .3));
+    const sb = ((t * 1.5 * s) % (W * 1.1)) - .05 * W; P_([[sb, .615 * H], [sb + 5 * s, .615 * H - 9 * s], [sb + 6 * s, .615 * H]], farbeLand([240, 240, 236], .5));
+    zFill(SZ.wald, [56, 92, 60], .35);
+    zFill(SZ.strand, [226, 206, 160], .08);
+    // Seebrücke: vom Strand weit hinaus aufs Meer (perspektivisch)
+    const a = [.54, .83], e = [.82, .632], holz = farbeLand([150, 120, 90], .12);
+    ctx.strokeStyle = css(holz);
+    for (let k = 0; k <= 14; k++) {   // Pfähle
+      const f = k / 14, x = lerp(a[0], e[0], f) * W, y = lerp(a[1], e[1], f) * H, h = lerp(14, 3, f) * s;
+      ctx.lineWidth = lerp(2.6, .8, f) * s; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + h); ctx.stroke();
+    }
+    ctx.fillStyle = css(holz); ctx.beginPath(); ctx.moveTo(a[0] * W - 7 * s, a[1] * H); ctx.lineTo(a[0] * W + 7 * s, a[1] * H); ctx.lineTo(e[0] * W + 1.5 * s, e[1] * H); ctx.lineTo(e[0] * W - 1.5 * s, e[1] * H); ctx.fill();
+    ctx.lineWidth = 1 * s; ctx.beginPath(); ctx.moveTo(a[0] * W - 7 * s, a[1] * H - 7 * s); ctx.lineTo(e[0] * W - 1.5 * s, e[1] * H - 3 * s); ctx.moveTo(a[0] * W + 7 * s, a[1] * H - 7 * s); ctx.lineTo(e[0] * W + 1.5 * s, e[1] * H - 3 * s); ctx.stroke();   // Geländer
+    // Pavillon am Brückenkopf
+    const px = e[0] * W, py = e[1] * H;
+    R_(px - 5 * s, py - 6 * s, 10 * s, 6 * s, farbeLand([236, 232, 222], .3)); P_([[px - 7 * s, py - 6 * s], [px, py - 11 * s], [px + 7 * s, py - 6 * s]], farbeLand([70, 110, 150], .3));
+    // Strandkörbe mit gestreiften Hauben
+    const koerbe = [[.66, .865], [.76, .878], [.87, .862], [.95, .885]], streifen = [[50, 110, 190], [214, 70, 60], [40, 150, 140], [240, 170, 50]];
+    koerbe.forEach(([u, v], k) => {
+      const x = u * W, y = v * H, w = 21 * s, h = 24 * s;
+      R_(x - w / 2, y - h * .45, w, h * .45, farbeLand([214, 190, 140], .05));
+      ctx.fillStyle = css(farbeLand([214, 190, 140], .05)); ctx.beginPath(); ctx.moveTo(x - w / 2, y - h * .45); ctx.quadraticCurveTo(x - w / 2, y - h, x, y - h); ctx.quadraticCurveTo(x + w / 2, y - h, x + w / 2, y - h * .45); ctx.fill();
+      ctx.fillStyle = css(farbeLand(streifen[k], .05)); for (let q = 0; q < 3; q++) ctx.fillRect(x - w / 2 + 3 * s + q * 5.8 * s, y - h * .86, 2.9 * s, h * .4);
+      R_(x - w / 2 + 2 * s, y - h * .4, w - 4 * s, 3 * s, farbeLand([248, 246, 240], .05));
+    });
+    zFill(SZ.duene, [206, 190, 146], .06);
+    ctx.strokeStyle = css(farbeLand([120, 140, 80], .05)); ctx.lineWidth = 1.1 * s;   // Strandhafer
+    const rr = rand(9); for (let k = 0; k < 34; k++) { const x = rr() * .4 * W, y = (.83 + rr() * .05) * H, l = (6 + rr() * 8) * s; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (rr() - .5) * 5 * s + Math.sin(t * 1.5 + k) * s, y - l); ctx.stroke(); }
+    // Möwen
+    if (nacht < .7) {
+      ctx.strokeStyle = `rgba(60,64,72,${.7 * (1 - nacht)})`; ctx.lineWidth = 1.4 * s;
+      for (let k = 0; k < 3; k++) {
+        const gx = ((t * (8 + k * 3) * s + k * 140 * s) % (W * 1.2)) - .1 * W, gy = (.36 + k * .07) * H + Math.sin(t * 1.3 + k) * 6 * s, fl = Math.sin(t * 6 + k) * 2 * s;
+        ctx.beginPath(); ctx.moveTo(gx - 7 * s, gy + fl); ctx.quadraticCurveTo(gx - 3 * s, gy - 4 * s, gx, gy); ctx.quadraticCurveTo(gx + 3 * s, gy - 4 * s, gx + 7 * s, gy + fl); ctx.stroke();
+      }
+    }
+    if (nacht > .05) { ctx.fillStyle = `rgba(255,220,150,${.9 * nacht})`; for (let k = 0; k <= 7; k++) { const f = k / 7; ctx.beginPath(); ctx.arc(lerp(a[0], e[0], f) * W, lerp(a[1], e[1], f) * H - 8 * s * (1 - f * .6), 1.4 * s, 0, 6.283); ctx.fill(); } }
+  }
+  function zeichneSzene(t) {
+    if (st.szene === "porta") return zeichnePorta(t);
+    ({ minden: zeichneMinden, rinteln: zeichneRinteln, greifswald: zeichneGreifswald, kellenhusen: zeichneKellenhusen })[st.szene]?.(t);
   }
   function denkmal(x, y, s, nacht) {
     // Nach dem Original: runde Ringterrasse mit Arkadenfenstern, in die Bergkuppe eingebettet,
@@ -2660,14 +2915,14 @@ const Sky = (() => {
     }); ctx.globalAlpha = 1; };   // Deckkraft zurücksetzen, sonst wird die Landschaft durchsichtig
     wolken(0, 0);
     // Hügel mit Dunst
-    if (st.porta) { wolken(1, 1); wolken(2, 2); zeichnePorta(t); }   // in Porta alle Wolken hinter die Landschaft
+    if (st.szene) { wolken(1, 1); wolken(2, 2); zeichneSzene(t); }   // in Stadtszenen alle Wolken hinter die Landschaft
     else hills.forEach((hl, i) => {
       ctx.fillStyle = css(bergFarbe(hl.stufe));
       ctx.beginPath(); ctx.moveTo(0, H); hl.pts.forEach(([x, y]) => ctx.lineTo(x, y)); ctx.lineTo(W, H);
       ctx.closePath(); ctx.fill();
       if (i === 0) wolken(1, 1);
     });
-    if (!st.porta) wolken(2, 2);
+    if (!st.szene) wolken(2, 2);
     clouds = clouds.filter(c => c.ziel > 0 || c.a > .01);
     // Nebel
     if (st.type === "fog" || col.ov > .8 && st.cloud > .95) {
@@ -3453,16 +3708,16 @@ document.addEventListener("click", async e => {
     case "save": speichereEdit(); break;
     case "moveup": { const i = S.places.findIndex(x => x.id === ED.id); if (i > 0) { [S.places[i - 1], S.places[i]] = [S.places[i], S.places[i - 1]]; speichere(); } schliesseSheet(); render(); break; }
     case "delete": {
-      if (S.places.length <= 1) { toast("Mindestens ein Ort muss bleiben."); break; }
+      if (S.places.length <= 1 && !S.gps.on) { toast("Mindestens ein Ort muss bleiben – oder schalte zuerst den aktuellen Standort ein."); break; }
       const p = S.places.find(x => x.id === ED.id);
       if (!confirm(`„${p.name}“ löschen?`)) break;
-      S.places = S.places.filter(x => x.id !== ED.id); if (S.curId === ED.id) S.curId = S.places[0].id;
+      S.places = S.places.filter(x => x.id !== ED.id); if (S.curId === ED.id) S.curId = S.places[0]?.id ?? (S.gps.on ? "gps" : null);
       try { localStorage.removeItem("wetter.raw." + ED.id); } catch { }
       speichere(); schliesseSheet(); render(); break;
     }
     case "pin": ED.station = arg || null; stationenHtml($("#e-st")?.dataset.rec); break;
     case "gps": {
-      if (S.gps.on) { S.gps.on = false; if (S.curId === "gps") S.curId = S.places[0].id; speichere(); render(); break; }
+      if (S.gps.on) { S.gps.on = false; if (S.curId === "gps") S.curId = S.places[0]?.id ?? null; speichere(); render(); break; }
       el.setAttribute("aria-checked", "true");
       if (await gpsAktualisieren(false)) { S.gps.on = true; S.curId = "gps"; speichere(); render(); aktualisiere(); }
       else el.setAttribute("aria-checked", "false");
@@ -3478,6 +3733,8 @@ document.addEventListener("click", async e => {
     }
     case "extras": S.settings.extras = !S.settings.extras; speichere(); render(); if (S.settings.extras) { ladePegel().then(render).catch(() => { }); ladeLage().then(render).catch(() => { }); } break;
     case "teilen": teilen(); break;
+    case "startgps": S.gps.on = true; S.gpsFehler = false; render();
+      if (await gpsAktualisieren(false)) { S.curId = "gps"; speichere(); aktualisiere(); } else { S.gpsFehler = true; render(); } break;
     case "rzoom": if (RV.map) { if (arg === "de") RV.map.fitBounds([[47.2, 5.8], [55.1, 15.1]]); else { const p = aktOrt(); RV.map.setView([p.lat, p.lon], 8.5); } } break;
     case "regenradar": S.tab = "radar"; S.eSeite = null; render(); setTimeout(() => $("#rchartblk")?.scrollIntoView({ behavior: "smooth", block: "start" }), 350); break;
     case "update": updatePruefen(true); break;
