@@ -1178,27 +1178,27 @@ function renderWetter() {
   if (!d) { body.innerHTML = `<div class="empty">${S.err ? esc(S.err) : "Wetterdaten werden geladen …"}</div>`; return; }
   let h = "";
   // Warnungen
-  if (d.alerts.length) {
+  if (d.alerts.length && zeige("warn")) {
     const top = [...d.alerts].sort((a, b) => sevStufe(b.sev) - sevStufe(a.sev))[0];
     const lv = sevStufe(top.sev);
     h += `<button class="warnstrip" data-a="tab:warnungen"><span class="lvl l${lv}">${lv}</span><div><b>${esc(top.head || top.ev)}</b><span>Stufe ${lv} von 4${top.exp ? ", bis " + zeitText(new Date(top.exp)) : ""}${d.alerts.length > 1 ? `, dazu ${d.alerts.length - 1} weitere` : ""}</span></div></button>`;
   }
   // Gleich
   const nc = nowcast();
-  if (nc?.zeigen) {
+  if (nc?.zeigen && zeige("regen")) {
     h += `<button class="regenstrip" data-a="regenradar"><span class="rs-ic">${ico(nc.jetzt >= 0.1 ? "rain" : "drizzle", 26)}</span><div><b>${esc(nc.text)}</b><span>Laut Radar, höchstens ${nf(nc.max, 1)} mm/h · Radar ansehen</span></div><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>`;
   }
   // Schwellen
-  const hw = hinweise(d);
+  const hw = zeige("schwellen") ? hinweise(d) : [];
   if (hw.length) h += `<section class="blk"><h2>Schwellwerte <small>nächste 24 Std</small></h2><div class="limits">${hw.map(x => `<div class="limit"><span><b>${x.k}</b> ${x.txt}</span><span class="muted">${zeitText(x.t)}</span></div>`).join("")}</div></section>`;
   // Nächste 24 Stunden – Diagramm
   const hrsH = mgStunden(d, "heute");
   const selH = Math.min(S.mgSel.heute ?? 0, hrsH.length - 1);
-  h += `<section class="blk"><h2>Nächste 24 Stunden <small>${heuteSatz(d)}</small></h2><div class="panel flush mgp">${meteogramm(hrsH, p, { id: "heute", sel: selH, jetzt: true })}<div data-mginfo="heute">${mgInfo(hrsH[selH], p)}</div></div></section>`;
+  if (zeige("stunden")) h += `<section class="blk"><h2>Nächste 24 Stunden <small>${heuteSatz(d)}</small></h2><div class="panel flush mgp">${meteogramm(hrsH, p, { id: "heute", sel: selH, jetzt: true })}<div data-mginfo="heute">${mgInfo(hrsH[selH], p)}</div></div></section>`;
   // Woche
-  h += `<section class="blk"><h2>Die Woche <small>${d.days.length} Tage</small></h2><div class="panel flush days">${wocheHtml(d)}</div></section>`;
+  if (zeige("woche")) h += `<section class="blk"><h2>Die Woche <small>${d.days.length} Tage</small></h2><div class="panel flush days">${wocheHtml(d)}</div></section>`;
   // Jetzt gemessen
-  h += jetztHtml(d, p);
+  if (zeige("jetzt")) h += jetztHtml(d, p);
   // Einsatz-Extras
   if (S.settings.extras) h += extrasHtml();
   if (S.settings.gesundheit) h += gesundheitHtml(d);
@@ -1571,9 +1571,8 @@ function zeigeDetail(key) {
   sh.innerHTML = `<div class="sheetbox dsheet" role="dialog" aria-modal="true"><div class="dgriff"><span></span><button class="ibtn" data-a="close" aria-label="Schließen"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>${html}</div>`;
   navSync();
 }
-function feuerDaten() {
+function feuerDaten(p = aktOrt()) {
   const F = S.lage?.feuer; if (!F) return null;
-  const p = aktOrt();
   if (F.stationen?.length) {
     const k = F.stationen.filter(s => s.lat != null && (s.wbi?.length || s.glfi?.length))
       .map(s => ({ ...s, km: kmZwischen(p.lat, p.lon, s.lat, s.lon) })).sort((a, b) => a.km - b.km)[0];
@@ -1664,7 +1663,7 @@ function extrasHtml() {
       ${pegelChart(pg.series, al?.schwelle, pg)}
       <div class="pwerte">${werte.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("")}</div>
       ${alarm}${wt}
-      <div class="gc-fuss"><span>WSV PEGELONLINE · Stand ${hm(new Date(pg.t))} Uhr</span><button class="glink" data-a="eseite:einsatz">Alarm einstellen ›</button></div></div>`;
+      <div class="gc-fuss"><span>WSV PEGELONLINE · Stand ${hm(new Date(pg.t))} Uhr</span><button class="glink" data-a="${aktOrt().gps ? "eseite:schwellen" : "edit:" + aktOrt().id}">Alarm einstellen ›</button></div></div>`;
   } else S.detail.pegel = `<div class="gcard wasser"><div class="gc-kopf"><span class="gc-titel">${wsym("welle")}Pegel ${esc(pegelName())}</span></div><div class="gleer blau"><span class="gleer-ic">${wsym("welle", 22)}</span><div><b>${S.pegelErr ? "Gerade nicht erreichbar" : "Wird geladen …"}</b><span>${S.pegelErr ? `<a href="${CFG.links.pegel}" target="_blank" rel="noopener">PEGELONLINE öffnen</a>` : ""}</span></div></div></div>`;
 
   // ---- Karte: Waldbrand und Grasland
@@ -1833,7 +1832,7 @@ function gesundheitHtml(d) {
     else inhalt = `<div class="gpt"><div class="gpt-kopf"><span></span><span>Heute</span><span>Morgen</span><span>Übermorgen</span></div>`
       + pz.zeilen.map(r => `<div class="gpt-zeile"><b>${r.lab}</b>${[0, 1, 2].map(i => `<span>${signal(r.lv[i] || 0)}<small>${r.lv[i] ? esc(POLLEN_STUFEN[r.v[i]][1]).replace("keine bis gering", "schwach") : "–"}</small></span>`).join("")}</div>`).join("") + `</div>`;
     S.detail.pollen = `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("pollen", 16)}Pollenflug</span><span class="gpill">${esc(pz.reg.name)}</span></div>${inhalt}
-      <div class="gc-fuss"><span>DWD · Stand ${fmtStand(S.lage.pollen.stand)}</span><button class="glink" data-a="eseite:gesundheit">Pollen wählen ›</button></div></div>`;
+      <div class="gc-fuss"><span>DWD · Stand ${fmtStand(S.lage.pollen.stand)}</span><button class="glink" data-a="eseite:anzeige">Pollen wählen ›</button></div></div>`;
   } else S.detail.pollen = `<div class="gcard"><div class="gc-kopf"><span class="gc-titel">${gsym("pollen", 16)}Pollenflug</span></div><div class="gleer"><span class="gleer-ic">${gsym("pollen", 22)}</span><div><b>${S.lage ? "Gerade nicht verfügbar" : "Wird geladen …"}</b><span>${S.lage ? "Die Pollendaten kommen über die GitHub-Aktion." : ""}</span></div></div></div>`;
 
   // ---- Karte: gefühlte Temperatur
@@ -1998,7 +1997,7 @@ function pushHtml(sw) {
     <div class="thr one"><div><label for="p-warn">Amtliche Warnungen</label>${sel("p-warn", [[1, "Alle Warnungen (ab Stufe 1)"], [2, "Ab markantem Wetter (Stufe 2)"], [3, "Nur Unwetter (ab Stufe 3)"], [0, "Keine Warnungen"]], P.warnStufe)}</div></div>
     ${P.warnStufe > 0 ? `<div class="setting"><div>Entwarnungen<span>Wenn eine Warnung aufgehoben ist</span></div>${sw(P.entwarnung, "pset:entwarnung", "Entwarnungen")}</div>` : ""}
     <div class="setting"><div>Regen kommt<span>10 bis 45 Minuten vorher laut Radar, höchstens alle 3 Stunden</span></div>${sw(P.regen, "pset:regen", "Regen-Hinweis")}</div>
-    <div class="setting"><div>Weser &amp; Wald<span>Pegel-Alarm, Böen und Frost über deinen Schwellwerten</span></div>${sw(P.einsatz, "pset:einsatz", "Weser und Wald")}</div></div>`;
+    <div class="setting"><div>Pegel, Böen und Frost<span>Pegel-Alarm des Orts und deine Schwellenwerte</span></div>${sw(P.einsatz, "pset:einsatz", "Pegel, Böen und Frost")}</div></div>`;
   h += `<div class="plist" style="margin-top:16px"><div class="setting"><div>Test<span>Schickt sofort eine Probe-Benachrichtigung an dieses Gerät</span></div><button class="btn ghost" data-a="ptest">Senden</button></div></div>`;
   return h;
 }
@@ -2032,6 +2031,8 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("mess
 const ESYM = {
   orte: '<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>',
   push: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  anzeige: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 10h16M10 10v10"/>',
+  schwellen: '<path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16l4-5"/><path d="M4 20h16"/>',
   einsatz: '<path d="M2.5 18.5c1.6 0 1.6-1.4 3.2-1.4s1.6 1.4 3.2 1.4 1.6-1.4 3.2-1.4"/><path d="M2.5 14.5c1.6 0 1.6-1.4 3.2-1.4s1.6 1.4 3.2 1.4"/><path d="M17.5 21v-3.5"/><path d="M17.5 3.5l-4 6h2.3l-3 5h9.4l-3-5h2.3z"/>',
   gesundheit: '<path d="M12 20s-7-4.3-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.7-7 10-7 10z"/>',
   karte: '<path d="M9 4l-5 2v14l5-2 6 2 5-2V4l-5 2z"/><path d="M9 4v14M15 6v14"/>',
@@ -2040,8 +2041,8 @@ const ESYM = {
 const ESEITEN = [
   { id: "orte", titel: "Orte", farbe: "#2F80ED", gruppe: 0 },
   { id: "push", titel: "Benachrichtigungen", farbe: "#F2994A", gruppe: 0 },
-  { id: "einsatz", titel: "Weser & Wald", farbe: "#12A08A", gruppe: 1 },
-  { id: "gesundheit", titel: "Gesundheit", farbe: "#27AE60", gruppe: 1 },
+  { id: "anzeige", titel: "Anzeige", farbe: "#5B6CF0", gruppe: 1 },
+  { id: "schwellen", titel: "Schwellenwerte", farbe: "#D7261E", gruppe: 1 },
   { id: "karte", titel: "Radarkarte", farbe: "#0EA5C6", gruppe: 1 },
   { id: "app", titel: "App und Info", farbe: "#6B7280", gruppe: 2 }
 ];
@@ -2059,8 +2060,8 @@ function eZusammenfassung(id) {
       const t = []; if (P.morgen) t.push(`morgens ${P.morgenZeit}`); if (P.warnStufe) t.push(`Warnungen ab Stufe ${P.warnStufe}`); if (P.regen) t.push("Regen");
       return "An · " + (t.join(" · ") || "nur Test");
     }
-    case "einsatz": return st.extras ? `Pegel ${pegelName()} · Böen ${st.schwellen.boen} km/h · Frost ${st.schwellen.frost} °C${aktOrt().pegelAlarm ? ` · Alarm ${aktOrt().pegelAlarm} cm` : ""}` : "Ausgeblendet";
-    case "gesundheit": return st.gesundheit ? `${pollenRegionName(pollenRegionFuer())} · Biowetter ${bioZoneFuer()}` : "Ausgeblendet";
+    case "anzeige": { const aus = ZEIGE.filter(([k]) => !zeige(k)).length + (st.extras ? 0 : 1) + (st.gesundheit ? 0 : 1); return aus ? `${ZEIGE.length + 2 - aus} von ${ZEIGE.length + 2} Bereichen sichtbar` : "Alle Bereiche sichtbar"; }
+    case "schwellen": return `Böen ${st.schwellen.boen} km/h · Frost ${st.schwellen.frost} °C · Sicht ${st.schwellen.sicht} m`;
     case "karte": return `${(KARTENSTILE[st.kartenStil || "farbig"] || "").replace(/ \(.*\)/, "")} · ${(st.cartoKey || CFG.cartoKey) ? "CARTO" : "OpenStreetMap"}${st.radarWolken ? " · Wolken" : ""}`;
     case "app": return `Version ${self.APP_VERSION || "–"}${S.lage?.stand ? ` · Daten vom ${S.lage.stand.slice(0, 6)}` : ""}`;
   }
@@ -2095,35 +2096,26 @@ function eOrteHtml(sw) {
   h += elabel("Standort") + `<div class="plist"><div class="setting"><div>Aktueller Standort<span>Zusätzlich das Wetter an deiner GPS-Position, nur auf dem Gerät verarbeitet</span></div>${sw(S.gps.on, "gps", "Aktueller Standort")}</div></div>`;
   return h + `<p class="ehinweis">Ort antippen zeigt sein Wetter. Mit dem Stift änderst du Namen, Position oder die feste DWD-Station.</p>`;
 }
-function eGewaesserJeOrt() {
-  const orte = alleOrte().filter(o => !o.platzhalter);
-  const zeilen = orte.map(o => o.gps
-    ? `<div class="mrow"><span class="mt"><b>Aktueller Standort</b><span>Automatisch die nächste Messstelle · kein Alarm</span></span></div>`
-    : `<button class="mrow" data-a="edit:${o.id}"><span class="mt"><b>${esc(o.name)}</b><span>${esc(pegelBeschreibung(o))}</span></span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>`).join("");
-  return elabel("Gewässer und Pegel-Alarm je Ort") + `<div class="mlist">${zeilen || `<div class="mrow"><span class="mt"><span>Noch kein Ort angelegt.</span></span></div>`}</div>
-    <p class="ehinweis">Jeder Ort hat seine eigene Messstelle und seinen eigenen Alarm. Ort antippen zum Ändern. Daten von PEGELONLINE (Bundeswasserstraßen und Küste).</p>`;
-}
-function eEinsatzHtml(sw) {
-  const st = S.settings, F = feuerDaten();
-  let h = `<div class="plist"><div class="setting"><div>Im Wetter-Tab anzeigen<span>Pegel mit Wassertemperatur, Waldbrand- und Graslandindex, Hinweise bei überschrittenen Schwellwerten</span></div>${sw(st.extras, "extras", "Gewässer und Wald anzeigen")}</div></div>`;
-  if (st.extras) h += eGewaesserJeOrt()
-    + elabel("Waldbrand und Grasland") + `<div class="plist"><div class="setting"><div>Messstation<span>${F?.station ? `Automatisch die nächste DWD-Station: ${esc(F.station)}${F.km != null ? ` (${nf(F.km, 0)} km)` : ""}` : "Wird mit den Daten der GitHub-Aktion bestimmt"}</span></div></div></div>`;
-  if (st.extras) h += elabel("Schwellwerte") + `<div class="plist">
-    <div class="thr"><div><label for="t-boen">Böen ab km/h</label><input type="number" id="t-boen" inputmode="numeric" value="${st.schwellen.boen}"></div><div><label for="t-frost">Frost ab °C</label><input type="number" id="t-frost" inputmode="decimal" value="${st.schwellen.frost}"></div><div><label for="t-sicht">Sicht unter m</label><input type="number" id="t-sicht" inputmode="numeric" value="${st.schwellen.sicht}"></div></div></div>`
-    + `<p class="ehinweis">Die Schwellwerte gelten auch für Push-Benachrichtigungen, wenn dort „Weser &amp; Wald“ eingeschaltet ist.</p>`;
-  return h;
-}
-function eGesundheitHtml(sw) {
+/* ---------- Einstellungen: Anzeige (welche Bereiche im Wetter-Tab) ---------- */
+const ZEIGE = [["warn", "Warnhinweis oben", "Amtliche Warnung als Leiste über dem Wetter"], ["regen", "Regen-Hinweis", "„Regen in etwa 20 Min“ laut Radar"],
+  ["schwellen", "Schwellwert-Hinweise", "Böen, Frost, Sicht oder Pegel über deinen Werten"], ["stunden", "Nächste 24 Stunden", "Diagramm mit Temperatur, Regen und Wind"],
+  ["woche", "Die Woche", "10-Tage-Vorhersage"], ["jetzt", "Jetzt gemessen", "Wind, Niederschlag, Luftfeuchte, Druck, Sonne und Mond"]];
+const zeige = k => (S.settings.zeige || {})[k] !== false;
+function eAnzeigeHtml(sw) {
   const st = S.settings;
-  let h = `<div class="plist"><div class="setting"><div>Im Wetter-Tab anzeigen<span>Pollenflug, gefühlte Belastung und Biowetter des DWD</span></div>${sw(st.gesundheit, "ges", "Gesundheit")}</div></div>`;
-  if (!st.gesundheit) return h;
-  h += elabel("Pollenflug") + `<div class="plist"><div class="chipsel"><span>Diese Pollen anzeigen (gilt für alle Orte)</span><div>${POLLEN_ARTEN.map(([k, n]) => `<button class="chip${st.pollenArten.includes(k) ? " on" : ""}" data-a="part:${k}" aria-pressed="${st.pollenArten.includes(k)}">${n}</button>`).join("")}</div></div></div>`;
-  const orte = alleOrte().filter(o => !o.platzhalter);
-  h += elabel("Pollenregion und Biowetter je Ort") + `<div class="mlist">${orte.map(o => o.gps
-    ? `<div class="mrow"><span class="mt"><b>Aktueller Standort</b><span>Automatisch: ${esc(pollenRegionName(pollenRegionFuer(o)))} · Biowetter ${bioZoneFuer(o)}</span></span></div>`
-    : `<button class="mrow" data-a="edit:${o.id}"><span class="mt"><b>${esc(o.name)}</b><span>${esc(gesundheitBeschreibung(o))}</span></span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>`).join("") || `<div class="mrow"><span class="mt"><span>Noch kein Ort angelegt.</span></span></div>`}</div>
-    <p class="ehinweis">Region und Gebiet werden aus der Lage des Orts bestimmt. Zum Ändern den Ort antippen.</p>`;
-  return h;
+  let h = elabel("Wetter-Tab") + `<div class="plist">` + ZEIGE.map(([k, t, u]) => `<div class="setting"><div>${t}<span>${u}</span></div>${sw(zeige(k), "zeige:" + k, t)}</div>`).join("")
+    + `<div class="setting"><div>${esc(gewaesserName())} &amp; Wald<span>Pegel, Wassertemperatur, Waldbrand- und Graslandindex</span></div>${sw(st.extras, "extras", "Gewässer und Wald")}</div>
+    <div class="setting"><div>Gesundheit<span>Pollenflug, gefühlte Belastung, Biowetter und UV</span></div>${sw(st.gesundheit, "ges", "Gesundheit")}</div></div>`;
+  if (st.gesundheit) h += elabel("Pollenarten") + `<div class="plist"><div class="chipsel"><span>Nur diese Pollen anzeigen und melden</span><div>${POLLEN_ARTEN.map(([k, n]) => `<button class="chip${st.pollenArten.includes(k) ? " on" : ""}" data-a="part:${k}" aria-pressed="${st.pollenArten.includes(k)}">${n}</button>`).join("")}</div></div></div>`;
+  return h + `<p class="ehinweis">Messstellen, Pollenregion und Biowetter-Gebiet stellst du je Ort unter „Orte“ ein.</p>`;
+}
+/* ---------- Einstellungen: Schwellenwerte ---------- */
+function eSchwellenHtml() {
+  const st = S.settings;
+  return `<div class="plist"><div class="thr"><div><label for="t-boen">Böen ab km/h</label><input type="number" id="t-boen" inputmode="numeric" value="${st.schwellen.boen}"></div><div><label for="t-frost">Frost ab °C</label><input type="number" id="t-frost" inputmode="decimal" value="${st.schwellen.frost}"></div><div><label for="t-sicht">Sicht unter m</label><input type="number" id="t-sicht" inputmode="numeric" value="${st.schwellen.sicht}"></div></div></div>
+    <p class="ehinweis">Werden diese Werte in den nächsten 24 Stunden erreicht, erscheint ein Hinweis im Wetter-Tab. Mit eingeschalteten Push-Benachrichtigungen („Pegel, Böen und Frost“) kommt zusätzlich eine Meldung aufs Handy.</p>`
+    + elabel("Pegel-Alarm") + `<div class="mlist">${alleOrte().filter(o => !o.platzhalter && !o.gps).map(o => `<button class="mrow" data-a="edit:${o.id}"><span class="mt"><b>${esc(o.name)}</b><span>${o.pegelAlarm ? `Alarm ab ${o.pegelAlarm} cm` : "kein Alarm"} · ${esc(schoen(pegelFuer(o)?.name || "Messstelle automatisch"))}</span></span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>`).join("") || `<div class="mrow"><span class="mt"><span>Noch kein Ort angelegt.</span></span></div>`}</div>
+    <p class="ehinweis">Der Pegel-Alarm gilt je Ort, weil jeder Ort seine eigene Messstelle hat.</p>`;
 }
 function eKarteHtml(sw) {
   const st = S.settings;
@@ -2167,8 +2159,8 @@ function eAppHtml() {
 const ETEXT = {
   orte: "Deine Orte und der aktuelle Standort.",
   push: "Hinweise aufs Handy, auch wenn die App geschlossen ist.",
-  einsatz: "Pegel, Wassertemperatur, Waldbrandindex und eigene Schwellwerte.",
-  gesundheit: "Pollenflug, Biowetter und gefühlte Belastung.",
+  anzeige: "Welche Bereiche der Wetter-Tab zeigt.",
+  schwellen: "Ab wann die App auf Böen, Frost, Sicht und Pegel hinweist.",
   karte: "Karte unter dem Regenradar.",
   app: "Version, Daten und Quellen."
 };
@@ -2177,7 +2169,7 @@ function renderOrte() {
   const sw = (on, a, lab) => `<button class="switch" role="switch" aria-checked="${!!on}" data-a="${a}" aria-label="${lab}"></button>`;
   const s = ESEITEN.find(x => x.id === S.eSeite);
   if (!s) { el.innerHTML = `<div class="eseite${S.eRichtung === "zurueck" ? " zurueck" : ""}">${einstUebersicht()}</div>`; S.eRichtung = null; return; }
-  const inhalt = { orte: eOrteHtml, push: pushHtml, einsatz: eEinsatzHtml, gesundheit: eGesundheitHtml, karte: eKarteHtml, app: eAppHtml }[s.id](sw);
+  const inhalt = { orte: eOrteHtml, push: pushHtml, anzeige: eAnzeigeHtml, schwellen: eSchwellenHtml, karte: eKarteHtml, app: eAppHtml }[s.id](sw);
   el.innerHTML = `<div class="eseite${S.eRichtung === "vor" ? " vor" : ""}">${einstKopf(s, ETEXT[s.id])}${inhalt}</div>`;
   S.eRichtung = null;
   einstBinden(el);
@@ -3641,6 +3633,8 @@ function oeffneEdit(id) {
     <p class="hint">Angepinnt bedeutet: Diese Station bleibt, auch wenn eine andere näher wäre.</p>
     <div class="lbl">Gewässer und Pegel</div><div class="mlist epegel" id="e-pegel"><div class="mrow"><span class="mt"><span>Messstellen werden gesucht …</span></span></div></div>
     <div class="thr two epalarm"><div><label for="e-palarm">Pegel-Alarm ab cm</label><input type="number" id="e-palarm" inputmode="numeric" placeholder="aus" value="${p.pegelAlarm ?? ""}"></div><div class="hintc">Gilt nur für diesen Ort. Leer lassen schaltet den Alarm ab.</div></div>
+    <div class="lbl">Waldbrand und Grasland</div>
+    <p class="hint">${(() => { const F = feuerDaten(p); return F?.station ? `Automatisch die nächste DWD-Station: ${esc(F.station)}${F.km != null ? ` (${nf(F.km, 0)} km)` : ""}.` : "Wird aus den täglichen DWD-Daten bestimmt."; })()}</p>
     <div class="lbl">Gesundheit</div>
     <div class="thr one"><div><label for="e-pollen">Pollenflug-Region</label><select id="e-pollen"><option value="">Automatisch (${esc(pollenRegionName(gebieteFuer(p).pollen))})</option>${POLLEN_REGIONEN.map(([id, n]) => `<option value="${id}"${p.pollenRegion === id ? " selected" : ""}>${esc(n)}</option>`).join("")}</select></div></div>
     <div class="thr one"><div><label for="e-bio">Biowetter-Gebiet</label><select id="e-bio"><option value="">Automatisch (Gebiet ${gebieteFuer(p).bio})</option>${BIO_ZONEN.map(([id, n]) => `<option value="${id}"${p.bioZone === id ? " selected" : ""}>${id}: ${esc(n)}</option>`).join("")}</select></div></div>
@@ -3792,6 +3786,7 @@ document.addEventListener("click", async e => {
     }
     case "extras": S.settings.extras = !S.settings.extras; speichere(); render(); if (S.settings.extras) { ladePegel().then(render).catch(() => { }); ladeLage().then(render).catch(() => { }); } break;
     case "teilen": teilen(); break;
+    case "zeige": S.settings.zeige = { ...(S.settings.zeige || {}), [arg]: !zeige(arg) }; speichere(); render(); break;
     case "startgps": S.gps.on = true; S.gpsFehler = false; render();
       if (await gpsAktualisieren(false)) { S.curId = "gps"; speichere(); aktualisiere(); } else { S.gpsFehler = true; render(); } break;
     case "rzoom": if (RV.map) { if (arg === "de") RV.map.fitBounds([[47.2, 5.8], [55.1, 15.1]]); else { const p = aktOrt(); RV.map.setView([p.lat, p.lon], 8.5); } } break;
